@@ -65,15 +65,29 @@ async function deleteConfig(siteKey) {
 }
 
 /* ── tampermonkey script generator ─────────────────────── */
-function generateScript(config) {
+async function generateScript(config) {
   const domains = (config.domains || []);
   const matchLines = domains.flatMap((d) => [
     `// @match        https://${d}/*`,
     `// @match        https://*.${d}/*`,
   ]).join('\n');
 
-  let supabaseHost = '';
-  try { supabaseHost = new URL(supabaseUrl).hostname; } catch { /* ignore */ }
+  // Fetch widget assets at generation time so they can be inlined.
+  // This avoids all runtime injection problems (eval, GM_addElement script,
+  // Trusted Types CSP) — the widget just runs as plain TM script code.
+  const [cssResp, jsResp] = await Promise.all([
+    fetch(WIDGET_BASE + 'brand-concierge.css'),
+    fetch(WIDGET_BASE + 'brand-concierge.js'),
+  ]);
+  const cssText = await cssResp.text();
+  const jsText = await jsResp.text();
+
+  // Strip ES module syntax; replace fetch() with gmFetch() which routes
+  // through GM_xmlhttpRequest, bypassing the page's connect-src CSP.
+  const widgetCode = jsText
+    .replace(/^export default async function/m, 'async function')
+    .replace(/^export /gm, '')
+    .replace(/\bfetch\(/g, 'gmFetch(');
 
   const initConfig = JSON.stringify({
     supabaseUrl,
@@ -95,7 +109,6 @@ function generateScript(config) {
 ${matchLines}
 // @grant        GM_addElement
 // @grant        GM_xmlhttpRequest
-// @grant        unsafeWindow
 // @connect      *
 // @run-at       document-idle
 // ==/UserScript==
@@ -103,13 +116,8 @@ ${matchLines}
 (function () {
   'use strict';
 
-  const BASE = '${WIDGET_BASE}';
-
-  console.log('[BrandChat] starting');
-
-  // bcFetch: routes fetch through GM_xmlhttpRequest, bypassing page connect-src CSP.
-  // Exposed on both unsafeWindow (page context) and window (TM eval context).
-  function bcFetch(url, opts) {
+  // Routes widget fetch() calls through GM_xmlhttpRequest (bypasses connect-src CSP).
+  function gmFetch(url, opts) {
     return new Promise(function (resolve, reject) {
       GM_xmlhttpRequest({
         method: (opts && opts.method) || 'GET',
@@ -125,54 +133,33 @@ ${matchLines}
             text: function () { return Promise.resolve(text); },
           });
         },
-        onerror: function () { reject(new TypeError('bcFetch network error')); },
+        onerror: function () { reject(new TypeError('gmFetch network error')); },
       });
     });
   }
-  try { unsafeWindow.bcFetch = bcFetch; } catch (e) { /* sandboxed */ }
-  window.bcFetch = bcFetch;
 
-  // Inject CSS via GM_addElement (style tags are not blocked by Trusted Types)
-  GM_xmlhttpRequest({
-    method: 'GET',
-    url: BASE + 'brand-concierge.css',
-    onerror: function (e) { console.error('[BrandChat] CSS fetch error', e); },
-    onload: function (r) {
-      console.log('[BrandChat] CSS loaded', r.status);
-      GM_addElement(document.head, 'style', { textContent: r.responseText });
-    },
-  });
+  GM_addElement(document.head, 'style', { textContent: ${JSON.stringify(cssText)} });
 
-  // Fetch widget JS and eval() in TM context — bypasses script-src/Trusted Types CSP entirely.
-  // GM_addElement(script) is subject to Trusted Types on strict sites; eval() in TM is not.
-  GM_xmlhttpRequest({
-    method: 'GET',
-    url: BASE + 'brand-concierge.js',
-    onerror: function (e) { console.error('[BrandChat] JS fetch error', e); },
-    onload: function (r) {
-      console.log('[BrandChat] JS loaded', r.status, r.responseText.length);
-      var code = r.responseText
-        .replace(/^export default async function/m, 'async function')
-        .replace(/^export /gm, '')
-        .replace(/\\bfetch\\(/g, '(window.bcFetch||fetch)(')
-        + '\\nconsole.log("[BrandChat] widget running");\\ninit(${initConfig});';
-      // eslint-disable-next-line no-eval
-      eval(code);
-    },
-  });
+${widgetCode}
+
+  init(${initConfig});
 }());
 `;
 }
 
-function downloadScript(config) {
-  const text = generateScript(config);
-  const blob = new Blob([text], { type: 'text/javascript' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `brand-chat-${config.site_key}.user.js`;
-  a.click();
-  URL.revokeObjectURL(url);
+async function downloadScript(config) {
+  try {
+    const text = await generateScript(config);
+    const blob = new Blob([text], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `brand-chat-${config.site_key}.user.js`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Script generation failed: ' + e.message);
+  }
 }
 
 /* ── site key derivation ─────────────────────────────────── */
