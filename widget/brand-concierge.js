@@ -29,6 +29,7 @@ let cfg = {
   initialPrompt: 'Ask me a question...',
   chatTitle: '',
   showTrigger: false,
+  triggerStyle: 'bubble',
   triggerLabel: '',
   widgetBase: '',
 };
@@ -596,35 +597,63 @@ async function autoSaveConfig() {
 }
 
 /* ── floating trigger button ──────────────────────────── */
+const ADOBE_A = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="18" viewBox="0 0 24 22" fill="none"><path d="M14.2353 21.6209L12.4925 16.7699H8.11657L11.7945 7.51237L17.3741 21.6209H24L15.1548 0.379395H8.90929L0 21.6209H14.2353Z" fill="#EB1000"/></svg>';
+
 function buildTrigger() {
   if (document.getElementById('bc-trigger')) return;
   const btn = document.createElement('button');
   btn.id = 'bc-trigger';
   btn.type = 'button';
   btn.setAttribute('aria-label', cfg.triggerLabel || `Chat with ${cfg.brandName || 'us'}`);
-  btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${cfg.triggerLabel ? `<span>${cfg.triggerLabel}</span>` : ''}`;
-  Object.assign(btn.style, {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    zIndex: '9999',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: cfg.triggerLabel ? '12px 18px' : '14px',
-    background: '#12417c',
-    color: '#fff',
-    border: 'none',
-    borderRadius: cfg.triggerLabel ? '28px' : '50%',
-    cursor: 'pointer',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-    fontSize: '15px',
-    fontFamily: 'system-ui, sans-serif',
-    fontWeight: '600',
-    transition: 'transform 0.15s, box-shadow 0.15s',
-  });
-  btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.06)'; btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)'; });
-  btn.addEventListener('mouseleave', () => { btn.style.transform = ''; btn.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)'; });
+
+  if (cfg.triggerStyle === 'tab') {
+    btn.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">${ADOBE_A}${cfg.triggerLabel ? `<span style="font-size:11px;font-weight:600;letter-spacing:0.03em;color:#111">${cfg.triggerLabel}</span>` : ''}</div>`;
+    Object.assign(btn.style, {
+      position: 'fixed',
+      top: '15%',
+      right: '0',
+      zIndex: '9999',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '14px 10px',
+      background: '#fff',
+      border: '1.5px solid #111',
+      borderRight: 'none',
+      borderRadius: '8px 0 0 8px',
+      cursor: 'pointer',
+      boxShadow: '-3px 3px 12px rgba(0,0,0,0.12)',
+      fontFamily: 'system-ui, sans-serif',
+      transition: 'box-shadow 0.15s, padding 0.15s',
+    });
+    btn.addEventListener('mouseenter', () => { btn.style.paddingRight = '14px'; btn.style.boxShadow = '-4px 4px 16px rgba(0,0,0,0.18)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.paddingRight = '10px'; btn.style.boxShadow = '-3px 3px 12px rgba(0,0,0,0.12)'; });
+  } else {
+    btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${cfg.triggerLabel ? `<span>${cfg.triggerLabel}</span>` : ''}`;
+    Object.assign(btn.style, {
+      position: 'fixed',
+      bottom: '24px',
+      right: '24px',
+      zIndex: '9999',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: cfg.triggerLabel ? '12px 18px' : '14px',
+      background: '#12417c',
+      color: '#fff',
+      border: 'none',
+      borderRadius: cfg.triggerLabel ? '28px' : '50%',
+      cursor: 'pointer',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+      fontSize: '15px',
+      fontFamily: 'system-ui, sans-serif',
+      fontWeight: '600',
+      transition: 'transform 0.15s, box-shadow 0.15s',
+    });
+    btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.06)'; btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.transform = ''; btn.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)'; });
+  }
+
   btn.addEventListener('click', () => open());
   document.body.appendChild(btn);
 }
@@ -722,6 +751,7 @@ export default async function open(query) {
       instructions: el.dataset.instructions || '',
       contactUrl: el.dataset.contactUrl || '',
       showTrigger: el.dataset.showTrigger === 'true',
+      triggerStyle: el.dataset.triggerStyle || 'bubble',
       triggerLabel: el.dataset.triggerLabel || '',
     });
     return;

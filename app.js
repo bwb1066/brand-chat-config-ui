@@ -92,6 +92,7 @@ ${matchLines}
   script.dataset.supabaseUrl = '${supabaseUrl}';
   script.dataset.supabaseAnonKey = '${anonKey}';
   script.dataset.showTrigger = 'true';
+  script.dataset.triggerStyle = 'tab';
   document.head.appendChild(script);
 }());
 `;
