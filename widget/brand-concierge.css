@@ -267,6 +267,22 @@
 .bc-content li { margin-bottom: 4px; }
 .bc-content strong { font-weight: 600; }
 .bc-content hr { border: none; border-top: 1px solid #ccc; margin: 16px 0; }
+
+.bc-content a {
+  color: #12417c;
+  text-decoration: none;
+  border-bottom: 1.5px solid rgba(18, 65, 124, 0.35);
+  padding-bottom: 1px;
+  transition: background 0.12s, border-color 0.12s;
+  border-radius: 2px;
+}
+
+.bc-content a:hover {
+  background: rgba(18, 65, 124, 0.07);
+  border-bottom-color: #12417c;
+  padding: 1px 3px;
+  margin: 0 -3px;
+}
 .bc-content table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
 .bc-content td { padding: 8px 12px; border: 1px solid #ccc; vertical-align: top; }
 .bc-content tr:first-child td { font-weight: 600; background: rgb(0 0 0 / 4%); }

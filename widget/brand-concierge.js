@@ -81,6 +81,8 @@ function toSiteKey(name) {
 function markdownToHtml(md) {
   let h = md;
   h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Linkify bare URLs not already inside an href
+  h = h.replace(/(?<!href=["'])(https?:\/\/[^\s<>"')\]]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   h = h.replace(/^---$/gm, '<hr>');
   h = h.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
   h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>');
