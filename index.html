@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand Chat — Config</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <svg width="20" height="18" viewBox="0 0 24 22" fill="none"><path d="M14.2353 21.6209L12.4925 16.7699H8.11657L11.7945 7.51237L17.3741 21.6209H24L15.1548 0.379395H8.90929L0 21.6209H14.2353Z" fill="#EB1000"/></svg>
+      Brand Chat Config
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-settings" class="btn-icon" title="Connection settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button id="btn-new" class="btn-primary">+ New config</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Connection setup screen -->
+    <section id="screen-setup" class="screen hidden">
+      <div class="setup-card">
+        <h2>Connect to Supabase</h2>
+        <p>Enter your Supabase project details to manage brand chat configurations.</p>
+        <label class="field">
+          <span>Supabase URL</span>
+          <input type="url" id="input-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+        </label>
+        <label class="field">
+          <span>Anon key</span>
+          <input type="text" id="input-anon-key" placeholder="eyJhbGciOiJIUzI1NiIs...">
+        </label>
+        <button id="btn-connect" class="btn-primary">Connect</button>
+        <p id="setup-error" class="error-msg hidden"></p>
+      </div>
+    </section>
+
+    <!-- Config list screen -->
+    <section id="screen-list" class="screen hidden">
+      <div class="list-header">
+        <h2>Brand configurations</h2>
+        <span id="config-count" class="pill"></span>
+      </div>
+      <div id="config-grid" class="config-grid"></div>
+      <p id="list-empty" class="empty-msg hidden">No configurations yet. Click <strong>+ New config</strong> to get started.</p>
+    </section>
+  </main>
+
+  <!-- Config edit modal -->
+  <div id="modal-config" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">New configuration</h3>
+        <button id="modal-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <form id="config-form" class="modal-body" novalidate>
+        <div class="form-cols">
+          <label class="field">
+            <span>Brand name <em>*</em></span>
+            <input type="text" name="brand_name" required placeholder="Acme Corp">
+          </label>
+          <label class="field">
+            <span>Site key <small>(auto-derived)</small></span>
+            <input type="text" name="site_key" placeholder="acme-corp" pattern="[a-z0-9-]+">
+          </label>
+        </div>
+        <label class="field">
+          <span>Domains <small>(comma-separated)</small> <em>*</em></span>
+          <input type="text" name="domains" required placeholder="example.com, shop.example.com">
+        </label>
+        <label class="field">
+          <span>Instructions <small>(system prompt)</small></span>
+          <textarea name="instructions" rows="4" placeholder="You are a helpful assistant for Acme Corp..."></textarea>
+        </label>
+        <div class="form-cols">
+          <label class="field">
+            <span>Persona</span>
+            <input type="text" name="persona" placeholder="friendly sales rep">
+          </label>
+          <label class="field">
+            <span>Vector store ID</span>
+            <input type="text" name="vector_store_id" placeholder="vs_abc123">
+          </label>
+        </div>
+        <div class="form-cols">
+          <label class="field">
+            <span>Contact URL</span>
+            <input type="url" name="contact_url" placeholder="https://example.com/contact">
+          </label>
+          <label class="field">
+            <span>Web search context</span>
+            <input type="text" name="open_search_context" placeholder="e.g. renting a car from Avis">
+          </label>
+        </div>
+        <div class="form-cols">
+          <label class="field">
+            <span>Initial prompt</span>
+            <input type="text" name="initial_prompt" placeholder="Ask me a question...">
+          </label>
+          <label class="field">
+            <span>Chat title</span>
+            <input type="text" name="chat_title" placeholder="Chat with us">
+          </label>
+        </div>
+        <label class="field field-check">
+          <input type="checkbox" name="disable_citations">
+          <span>Disable citations</span>
+        </label>
+      </form>
+      <div class="modal-footer">
+        <button id="modal-delete" class="btn-danger hidden">Delete</button>
+        <div class="footer-right">
+          <button id="modal-cancel" class="btn-ghost">Cancel</button>
+          <button id="modal-save" class="btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="modal-settings" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Connection settings</h3>
+        <button id="settings-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label class="field">
+          <span>Supabase URL</span>
+          <input type="url" id="settings-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+        </label>
+        <label class="field">
+          <span>Anon key</span>
+          <input type="text" id="settings-anon-key" placeholder="eyJhbGciOiJIUzI1NiIs...">
+        </label>
+      </div>
+      <div class="modal-footer">
+        <div class="footer-right">
+          <button id="settings-cancel" class="btn-ghost">Cancel</button>
+          <button id="settings-save" class="btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
