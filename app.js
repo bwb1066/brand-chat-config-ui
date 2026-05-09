@@ -41,25 +41,21 @@ async function upsertConfig(data) {
   return r.json();
 }
 
-async function deleteConfig(siteKey) {
-  const r = await fetch(
-    `${supabaseUrl}/rest/v1/brand_configs?site_key=eq.${encodeURIComponent(siteKey)}`,
-    { method: 'DELETE', headers: { ...hdrs(), Prefer: 'return=minimal' } },
-  );
-  if (!r.ok) throw new Error(`${r.status}`);
-}
-
 async function deleteConfigs(siteKeys) {
-  const batchSize = 20;
+  const batchSize = 50;
   for (let i = 0; i < siteKeys.length; i += batchSize) {
     const batch = siteKeys.slice(i, i + batchSize);
-    const inList = batch.map((k) => `"${k}"`).join(',');
-    const r = await fetch(
-      `${supabaseUrl}/rest/v1/brand_configs?site_key=in.(${inList})`,
-      { method: 'DELETE', headers: { ...hdrs(), Prefer: 'return=minimal' } },
-    );
+    const r = await fetch(`${supabaseUrl}/functions/v1/brand-config`, {
+      method: 'DELETE',
+      headers: hdrs(),
+      body: JSON.stringify({ site_keys: batch }),
+    });
     if (!r.ok) throw new Error(`${r.status}`);
   }
+}
+
+async function deleteConfig(siteKey) {
+  return deleteConfigs([siteKey]);
 }
 
 /* ── tampermonkey script generator ─────────────────────── */
