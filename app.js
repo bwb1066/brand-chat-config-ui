@@ -96,8 +96,7 @@ ${matchLines}
 // @grant        GM_addElement
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
-// @connect      bwb1066.github.io
-// @connect      *.supabase.co${supabaseHost && !supabaseHost.endsWith('.supabase.co') ? `\n// @connect      ${supabaseHost}` : ''}
+// @connect      *
 // @run-at       document-idle
 // ==/UserScript==
 
