@@ -42,13 +42,24 @@ async function upsertConfig(data) {
 }
 
 async function deleteConfig(siteKey) {
-  // The brand-config function doesn't expose DELETE yet — we upsert with a tombstone.
-  // For now, we'll just reload without it by using Supabase REST directly.
   const r = await fetch(
     `${supabaseUrl}/rest/v1/brand_configs?site_key=eq.${encodeURIComponent(siteKey)}`,
     { method: 'DELETE', headers: { ...hdrs(), Prefer: 'return=minimal' } },
   );
   if (!r.ok) throw new Error(`${r.status}`);
+}
+
+async function deleteConfigs(siteKeys) {
+  const batchSize = 20;
+  for (let i = 0; i < siteKeys.length; i += batchSize) {
+    const batch = siteKeys.slice(i, i + batchSize);
+    const inList = batch.map((k) => `"${k}"`).join(',');
+    const r = await fetch(
+      `${supabaseUrl}/rest/v1/brand_configs?site_key=in.(${inList})`,
+      { method: 'DELETE', headers: { ...hdrs(), Prefer: 'return=minimal' } },
+    );
+    if (!r.ok) throw new Error(`${r.status}`);
+  }
 }
 
 /* ── tampermonkey script generator ─────────────────────── */
@@ -105,6 +116,46 @@ function show(id) { document.getElementById(id).classList.remove('hidden'); }
 function hide(id) { document.getElementById(id).classList.add('hidden'); }
 function el(id) { return document.getElementById(id); }
 
+/* ── selection mode ─────────────────────────────────────── */
+let selectMode = false;
+const selected = new Set();
+
+function updateSelectionUI() {
+  el('selected-count').textContent = selected.size;
+  el('btn-delete-selected').classList.toggle('hidden', selected.size === 0);
+  document.querySelectorAll('.config-card').forEach((card) => {
+    const key = card.dataset.siteKey;
+    card.classList.toggle('selected', selected.has(key));
+    const cb = card.querySelector('.card-checkbox');
+    if (cb) cb.innerHTML = selected.has(key) ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+  });
+}
+
+function enterSelectMode() {
+  selectMode = true;
+  selected.clear();
+  el('config-grid').classList.add('select-mode');
+  document.querySelectorAll('.config-card').forEach((card) => card.classList.add('selectable'));
+  hide('btn-select');
+  hide('btn-new');
+  show('btn-cancel-select');
+  show('btn-delete-selected');
+  el('btn-delete-selected').classList.add('hidden');
+}
+
+function exitSelectMode() {
+  selectMode = false;
+  selected.clear();
+  el('config-grid').classList.remove('select-mode');
+  document.querySelectorAll('.config-card').forEach((card) => {
+    card.classList.remove('selectable', 'selected');
+  });
+  show('btn-select');
+  show('btn-new');
+  hide('btn-cancel-select');
+  hide('btn-delete-selected');
+}
+
 /* ── config list rendering ──────────────────────────────── */
 function renderConfigs(configs) {
   const grid = el('config-grid');
@@ -123,10 +174,12 @@ function renderConfigs(configs) {
   configs.forEach((c) => {
     const card = document.createElement('div');
     card.className = 'config-card';
+    card.dataset.siteKey = c.site_key;
 
     const domains = (c.domains || []).map((d) => `<span class="domain-tag">${d}</span>`).join('');
 
     card.innerHTML = `
+      <div class="card-checkbox"></div>
       <div class="config-card-name">${c.brand_name}</div>
       <div class="config-card-key">${c.site_key}</div>
       <div class="config-card-domains">${domains || '<span class="domain-tag" style="color:#868e96">no domains</span>'}</div>
@@ -141,9 +194,25 @@ function renderConfigs(configs) {
         </button>
       </div>`;
 
-    card.querySelector('.btn-edit').addEventListener('click', (e) => { e.stopPropagation(); openEditModal(c); });
-    card.querySelector('.btn-script').addEventListener('click', (e) => { e.stopPropagation(); downloadScript(c); });
-    card.addEventListener('click', () => openEditModal(c));
+    card.querySelector('.btn-edit').addEventListener('click', (e) => {
+      if (selectMode) return;
+      e.stopPropagation();
+      openEditModal(c);
+    });
+    card.querySelector('.btn-script').addEventListener('click', (e) => {
+      if (selectMode) return;
+      e.stopPropagation();
+      downloadScript(c);
+    });
+    card.addEventListener('click', () => {
+      if (selectMode) {
+        if (selected.has(c.site_key)) selected.delete(c.site_key);
+        else selected.add(c.site_key);
+        updateSelectionUI();
+      } else {
+        openEditModal(c);
+      }
+    });
 
     grid.append(card);
   });
@@ -302,6 +371,22 @@ el('settings-save').addEventListener('click', () => {
   saveConnection(url, key);
   hide('modal-settings');
   loadAndRender();
+});
+
+// Select mode
+el('btn-select').addEventListener('click', enterSelectMode);
+el('btn-cancel-select').addEventListener('click', exitSelectMode);
+
+el('btn-delete-selected').addEventListener('click', async () => {
+  if (selected.size === 0) return;
+  if (!confirm(`Delete ${selected.size} configuration${selected.size > 1 ? 's' : ''}? This cannot be undone.`)) return;
+  try {
+    await deleteConfigs([...selected]);
+    exitSelectMode();
+    loadAndRender();
+  } catch (err) {
+    alert(`Delete failed: ${err.message}`);
+  }
 });
 
 // Auto-derive site key from brand name

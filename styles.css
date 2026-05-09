@@ -238,6 +238,41 @@ body {
   line-height: 1.6;
 }
 
+.list-header-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.config-card.selectable { cursor: pointer; user-select: none; }
+
+.config-card.selectable:hover { border-color: var(--gray-300); box-shadow: none; }
+
+.config-card.selected {
+  border-color: var(--red);
+  background: #fff5f5;
+}
+
+.config-card .card-checkbox {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--gray-300);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.config-grid.select-mode .card-checkbox { display: flex; }
+
+.config-card.selected .card-checkbox {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
 /* ── form fields ────────────────────────────────────────── */
 .field {
   display: flex;

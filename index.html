@@ -44,6 +44,11 @@
       <div class="list-header">
         <h2>Brand configurations</h2>
         <span id="config-count" class="pill"></span>
+        <div class="list-header-actions">
+          <button id="btn-select" class="btn-ghost">Select</button>
+          <button id="btn-delete-selected" class="btn-danger hidden">Delete selected (<span id="selected-count">0</span>)</button>
+          <button id="btn-cancel-select" class="btn-ghost hidden">Cancel</button>
+        </div>
       </div>
       <div id="config-grid" class="config-grid"></div>
       <p id="list-empty" class="empty-msg hidden">No configurations yet. Click <strong>+ New config</strong> to get started.</p>
