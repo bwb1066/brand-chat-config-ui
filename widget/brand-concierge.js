@@ -32,6 +32,7 @@ let cfg = {
   triggerStyle: 'bubble',
   triggerLabel: '',
   widgetBase: '',
+  noCssAutoLoad: false,
 };
 
 const CONTACT_PHRASES = [
@@ -703,8 +704,8 @@ export function hasConversation() {
 export default async function open(query) {
   if (modal) return;
 
-  // Auto-load CSS next to this script
-  if (!document.querySelector('link[href*="brand-concierge.css"]')) {
+  // Auto-load CSS next to this script (skip if TM injected it already)
+  if (!cfg.noCssAutoLoad && !document.querySelector('link[href*="brand-concierge.css"]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     const s = document.querySelector('script[src*="brand-concierge"]');

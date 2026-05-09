@@ -72,6 +72,19 @@ function generateScript(config) {
     `// @match        https://*.${d}/*`,
   ]).join('\n');
 
+  let supabaseHost = '';
+  try { supabaseHost = new URL(supabaseUrl).hostname; } catch { /* ignore */ }
+
+  const initConfig = JSON.stringify({
+    supabaseUrl,
+    anonKey,
+    siteKey: config.site_key,
+    showTrigger: true,
+    triggerStyle: 'tab',
+    widgetBase: WIDGET_BASE,
+    noCssAutoLoad: true,
+  });
+
   return `// ==UserScript==
 // @name         Brand Chat – ${config.brand_name}
 // @namespace    https://github.com/bwb1066/brand-chat-config-ui
@@ -80,19 +93,34 @@ function generateScript(config) {
 // @author       Brand Chat Config
 ${matchLines}
 // @grant        GM_addElement
+// @grant        GM_xmlhttpRequest
+// @connect      bwb1066.github.io${supabaseHost ? `\n// @connect      ${supabaseHost}` : ''}
 // @run-at       document-idle
 // ==/UserScript==
 
 (function () {
   'use strict';
-  GM_addElement(document.head, 'script', {
-    type: 'module',
-    src: '${WIDGET_BASE}brand-concierge.js',
-    'data-site-key': '${config.site_key}',
-    'data-supabase-url': '${supabaseUrl}',
-    'data-supabase-anon-key': '${anonKey}',
-    'data-show-trigger': 'true',
-    'data-trigger-style': 'tab',
+
+  const BASE = '${WIDGET_BASE}';
+
+  // Fetch and inject CSS inline (bypasses script-src CSP)
+  GM_xmlhttpRequest({
+    method: 'GET',
+    url: BASE + 'brand-concierge.css',
+    onload: (r) => GM_addElement(document.head, 'style', { textContent: r.responseText }),
+  });
+
+  // Fetch widget JS, strip ES module exports, inject inline
+  GM_xmlhttpRequest({
+    method: 'GET',
+    url: BASE + 'brand-concierge.js',
+    onload: (r) => {
+      const code = r.responseText
+        .replace(/^export default async function/m, 'async function')
+        .replace(/^export /gm, '')
+        + '\\ninit(${initConfig});';
+      GM_addElement(document.head, 'script', { textContent: code });
+    },
   });
 }());
 `;
