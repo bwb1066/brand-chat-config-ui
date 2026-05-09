@@ -14,6 +14,8 @@
  *     data-site-key="mybrand"></script>
  */
 
+const WIDGET_VERSION = '2.0.0';
+
 /* ── state ────────────────────────────────────────────── */
 let cfg = {
   supabaseUrl: '',

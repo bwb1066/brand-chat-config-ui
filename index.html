@@ -129,6 +129,68 @@
     </div>
   </div>
 
+  <!-- Version history modal -->
+  <div id="modal-versions" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 id="versions-title">Script versions</h3>
+        <button id="versions-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="versions-list"></div>
+      <div class="modal-footer">
+        <button id="versions-upload" class="btn-ghost">Upload old script</button>
+        <div class="footer-right">
+          <button id="versions-done" class="btn-primary">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload old script modal -->
+  <div id="modal-upload-script" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Upload old script</h3>
+        <button id="upload-script-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-cols">
+          <label class="field">
+            <span>Site key <em>*</em></span>
+            <input type="text" id="upload-site-key" placeholder="homeserve">
+          </label>
+          <label class="field">
+            <span>Widget version</span>
+            <select id="upload-widget-version">
+              <option value="1.0.0">1.0.0 — initial (script-tag injection)</option>
+              <option value="1.1.0">1.1.0 — bubble trigger</option>
+              <option value="1.2.0">1.2.0 — tab trigger, GM_addElement</option>
+              <option value="2.0.0" selected>2.0.0 — inline at generation (current)</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span>Notes <small>(optional)</small></span>
+          <input type="text" id="upload-notes" placeholder="e.g. original before CSP changes">
+        </label>
+        <label class="field">
+          <span>Script content <em>*</em></span>
+          <textarea id="upload-script-content" rows="10" placeholder="Paste .user.js content here…"></textarea>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <div class="footer-right">
+          <button id="upload-script-cancel" class="btn-ghost">Cancel</button>
+          <button id="upload-script-save" class="btn-primary">Save version</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings modal -->
   <div id="modal-settings" class="modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="modal modal-sm">

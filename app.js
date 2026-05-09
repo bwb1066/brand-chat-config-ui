@@ -64,6 +64,37 @@ async function deleteConfig(siteKey) {
   return deleteConfigs([siteKey]);
 }
 
+/* ── script version api ─────────────────────────────────── */
+async function fetchAllScriptVersions() {
+  try {
+    const r = await fetch(`${supabaseUrl}/functions/v1/brand-scripts`, { headers: hdrs() });
+    if (!r.ok) return {};
+    return r.json(); // map of site_key → latest version row (no content)
+  } catch { return {}; }
+}
+
+async function fetchSiteScriptVersions(siteKey) {
+  const r = await fetch(`${supabaseUrl}/functions/v1/brand-scripts?site_key=${encodeURIComponent(siteKey)}`, { headers: hdrs() });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json(); // array of versions (no content)
+}
+
+async function fetchScriptVersion(siteKey, version) {
+  const r = await fetch(`${supabaseUrl}/functions/v1/brand-scripts?site_key=${encodeURIComponent(siteKey)}&version=${version}`, { headers: hdrs() });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json(); // full row including script_content
+}
+
+async function saveScriptVersion(siteKey, scriptContent, widgetVersion, notes) {
+  const r = await fetch(`${supabaseUrl}/functions/v1/brand-scripts`, {
+    method: 'POST',
+    headers: hdrs(),
+    body: JSON.stringify({ site_key: siteKey, script_content: scriptContent, widget_version: widgetVersion, notes }),
+  });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
 /* ── tampermonkey script generator ─────────────────────── */
 async function generateScript(config) {
   const domains = (config.domains || []);
@@ -81,6 +112,10 @@ async function generateScript(config) {
   ]);
   const cssText = await cssResp.text();
   const jsText = await jsResp.text();
+
+  // Extract the widget version constant so it can be stored alongside the saved script
+  const versionMatch = jsText.match(/^const WIDGET_VERSION = ['"]([^'"]+)['"]/m);
+  const widgetVersion = versionMatch ? versionMatch[1] : 'unknown';
 
   // Strip ES module syntax; replace fetch() with gmFetch() which routes
   // through GM_xmlhttpRequest, bypassing the page's connect-src CSP.
@@ -100,11 +135,11 @@ async function generateScript(config) {
     noCssAutoLoad: true,
   });
 
-  return `// ==UserScript==
+  return { widgetVersion, text: `// ==UserScript==
 // @name         Brand Chat – ${config.brand_name}
 // @namespace    https://github.com/bwb1066/brand-chat-config-ui
-// @version      1.0.0
-// @description  ${config.brand_name} AI Concierge widget
+// @version      ${widgetVersion}
+// @description  ${config.brand_name} AI Concierge widget — widget v${widgetVersion}
 // @author       Brand Chat Config
 ${matchLines}
 // @grant        GM_addElement
@@ -144,12 +179,12 @@ ${widgetCode}
 
   init(${initConfig});
 }());
-`;
+` };
 }
 
 async function downloadScript(config) {
   try {
-    const text = await generateScript(config);
+    const { text, widgetVersion } = await generateScript(config);
     const blob = new Blob([text], { type: 'text/javascript' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -157,6 +192,10 @@ async function downloadScript(config) {
     a.download = `brand-chat-${config.site_key}.user.js`;
     a.click();
     URL.revokeObjectURL(url);
+    // Save to version history in the background
+    saveScriptVersion(config.site_key, text, widgetVersion)
+      .then(() => refreshVersionBadge(config.site_key))
+      .catch((err) => console.warn('[versions] save failed:', err));
   } catch (e) {
     alert('Script generation failed: ' + e.message);
   }
@@ -214,7 +253,22 @@ function exitSelectMode() {
 }
 
 /* ── config list rendering ──────────────────────────────── */
-function renderConfigs(configs) {
+let versionsMap = {}; // site_key → latest version row
+
+function refreshVersionBadge(siteKey) {
+  fetchAllScriptVersions().then((map) => {
+    versionsMap = map;
+    const card = document.querySelector(`.config-card[data-site-key="${siteKey}"]`);
+    if (!card) return;
+    const badge = card.querySelector('.version-badge');
+    const v = map[siteKey];
+    if (badge) badge.textContent = v ? `v${v.version}` : '';
+    if (badge) badge.style.display = v ? '' : 'none';
+  }).catch(() => {});
+}
+
+function renderConfigs(configs, vmap) {
+  versionsMap = vmap || {};
   const grid = el('config-grid');
   const empty = el('list-empty');
   const count = el('config-count');
@@ -234,10 +288,12 @@ function renderConfigs(configs) {
     card.dataset.siteKey = c.site_key;
 
     const domains = (c.domains || []).map((d) => `<span class="domain-tag">${d}</span>`).join('');
+    const v = versionsMap[c.site_key];
+    const vBadge = v ? `<span class="version-badge">v${v.version}</span>` : '<span class="version-badge" style="display:none"></span>';
 
     card.innerHTML = `
       <div class="card-checkbox"></div>
-      <div class="config-card-name">${c.brand_name}</div>
+      <div class="config-card-name">${c.brand_name}${vBadge}</div>
       <div class="config-card-key">${c.site_key}</div>
       <div class="config-card-domains">${domains || '<span class="domain-tag" style="color:#868e96">no domains</span>'}</div>
       <div class="config-card-actions">
@@ -248,6 +304,10 @@ function renderConfigs(configs) {
         <button class="btn-download btn-script">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           TM script
+        </button>
+        <button class="btn-download btn-history">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          History
         </button>
       </div>`;
 
@@ -261,6 +321,11 @@ function renderConfigs(configs) {
       e.stopPropagation();
       downloadScript(c);
     });
+    card.querySelector('.btn-history').addEventListener('click', (e) => {
+      if (selectMode) return;
+      e.stopPropagation();
+      openVersionHistory(c.site_key, c.brand_name);
+    });
     card.addEventListener('click', () => {
       if (selectMode) {
         if (selected.has(c.site_key)) selected.delete(c.site_key);
@@ -273,6 +338,81 @@ function renderConfigs(configs) {
 
     grid.append(card);
   });
+}
+
+/* ── version history modal ──────────────────────────────── */
+let versionHistorySiteKey = '';
+
+async function openVersionHistory(siteKey, brandName) {
+  versionHistorySiteKey = siteKey;
+  el('versions-title').textContent = `Script versions — ${brandName}`;
+  el('versions-list').innerHTML = '<p style="color:var(--gray-500);font-size:13px">Loading…</p>';
+  show('modal-versions');
+  try {
+    const versions = await fetchSiteScriptVersions(siteKey);
+    renderVersionList(versions);
+  } catch (e) {
+    el('versions-list').innerHTML = `<p style="color:var(--red);font-size:13px">Failed to load: ${e.message}</p>`;
+  }
+}
+
+function renderVersionList(versions) {
+  const list = el('versions-list');
+  if (!versions.length) {
+    list.innerHTML = '<p style="color:var(--gray-500);font-size:13px">No saved versions yet. Click <strong>TM script</strong> to generate and save the first one.</p>';
+    return;
+  }
+  list.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'version-list';
+  versions.forEach((v) => {
+    const row = document.createElement('div');
+    row.className = 'version-item';
+    const date = new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    row.innerHTML = `
+      <span class="version-num">v${v.version}</span>
+      <div class="version-meta">
+        <span class="version-widget">widget ${v.widget_version}</span>
+        <span class="version-date">${date}</span>
+        ${v.notes ? `<span class="version-notes">${v.notes}</span>` : ''}
+      </div>
+      <div class="version-actions">
+        <button class="btn-ghost btn-dl-version" data-version="${v.version}" style="font-size:12px;padding:4px 10px">Download</button>
+      </div>`;
+    wrap.append(row);
+  });
+  list.append(wrap);
+
+  list.querySelectorAll('.btn-dl-version').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = '…';
+      try {
+        const full = await fetchScriptVersion(versionHistorySiteKey, btn.dataset.version);
+        const blob = new Blob([full.script_content], { type: 'text/javascript' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `brand-chat-${versionHistorySiteKey}-v${full.version}.user.js`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('Download failed: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Download';
+      }
+    });
+  });
+}
+
+/* ── upload old script modal ────────────────────────────── */
+function openUploadScript(prefillSiteKey) {
+  el('upload-site-key').value = prefillSiteKey || '';
+  el('upload-notes').value = '';
+  el('upload-script-content').value = '';
+  el('upload-widget-version').value = '1.0.0';
+  show('modal-upload-script');
 }
 
 /* ── config modal ───────────────────────────────────────── */
@@ -344,8 +484,8 @@ function openSettings() {
 /* ── main flow ──────────────────────────────────────────── */
 async function loadAndRender() {
   try {
-    const configs = await fetchConfigs();
-    renderConfigs(configs);
+    const [configs, vmap] = await Promise.all([fetchConfigs(), fetchAllScriptVersions()]);
+    renderConfigs(configs, vmap);
   } catch {
     alert('Failed to load configurations. Check your connection settings.');
     openSettings();
@@ -480,6 +620,43 @@ el('config-form').brand_name.addEventListener('input', (e) => {
 });
 el('config-form').site_key.addEventListener('input', (e) => {
   e.target.dataset.manuallyEdited = e.target.value ? 'true' : '';
+});
+
+// Version history modal
+el('versions-close').addEventListener('click', () => hide('modal-versions'));
+el('versions-done').addEventListener('click', () => hide('modal-versions'));
+el('modal-versions').addEventListener('click', (e) => { if (e.target === el('modal-versions')) hide('modal-versions'); });
+el('versions-upload').addEventListener('click', () => {
+  hide('modal-versions');
+  openUploadScript(versionHistorySiteKey);
+});
+
+// Upload old script modal
+el('upload-script-close').addEventListener('click', () => hide('modal-upload-script'));
+el('upload-script-cancel').addEventListener('click', () => hide('modal-upload-script'));
+el('modal-upload-script').addEventListener('click', (e) => { if (e.target === el('modal-upload-script')) hide('modal-upload-script'); });
+
+el('upload-script-save').addEventListener('click', async () => {
+  const siteKey = el('upload-site-key').value.trim();
+  const content = el('upload-script-content').value.trim();
+  if (!siteKey || !content) {
+    alert('Site key and script content are required.');
+    return;
+  }
+  const widgetVersion = el('upload-widget-version').value;
+  const notes = el('upload-notes').value.trim() || null;
+  try {
+    el('upload-script-save').disabled = true;
+    el('upload-script-save').textContent = 'Saving…';
+    await saveScriptVersion(siteKey, content, widgetVersion, notes);
+    hide('modal-upload-script');
+    refreshVersionBadge(siteKey);
+  } catch (e) {
+    alert('Save failed: ' + e.message);
+  } finally {
+    el('upload-script-save').disabled = false;
+    el('upload-script-save').textContent = 'Save version';
+  }
 });
 
 /* ── kick off ───────────────────────────────────────────── */
