@@ -95,6 +95,7 @@ function generateScript(config) {
 ${matchLines}
 // @grant        GM_addElement
 // @grant        GM_xmlhttpRequest
+// @grant        unsafeWindow
 // @connect      bwb1066.github.io${supabaseHost ? `\n// @connect      ${supabaseHost}` : ''}
 // @run-at       document-idle
 // ==/UserScript==
@@ -104,21 +105,44 @@ ${matchLines}
 
   const BASE = '${WIDGET_BASE}';
 
+  // Bridge: lets page-context widget code call GM_xmlhttpRequest (bypasses connect-src CSP)
+  unsafeWindow.bcFetch = function (url, opts) {
+    return new Promise((resolve, reject) => {
+      GM_xmlhttpRequest({
+        method: (opts && opts.method) || 'GET',
+        url: url,
+        headers: (opts && opts.headers) || {},
+        data: (opts && opts.body) || null,
+        onload: function (r) {
+          const text = r.responseText;
+          resolve({
+            ok: r.status >= 200 && r.status < 300,
+            status: r.status,
+            json: function () { return Promise.resolve(JSON.parse(text)); },
+            text: function () { return Promise.resolve(text); },
+          });
+        },
+        onerror: function () { reject(new TypeError('bcFetch network error')); },
+      });
+    });
+  };
+
   // Fetch and inject CSS inline (bypasses script-src CSP)
   GM_xmlhttpRequest({
     method: 'GET',
     url: BASE + 'brand-concierge.css',
-    onload: (r) => GM_addElement(document.head, 'style', { textContent: r.responseText }),
+    onload: function (r) { GM_addElement(document.head, 'style', { textContent: r.responseText }); },
   });
 
-  // Fetch widget JS, strip ES module exports, inject inline
+  // Fetch widget JS, strip ES module exports, route fetch through GM bridge, inject inline
   GM_xmlhttpRequest({
     method: 'GET',
     url: BASE + 'brand-concierge.js',
-    onload: (r) => {
+    onload: function (r) {
       const code = r.responseText
         .replace(/^export default async function/m, 'async function')
         .replace(/^export /gm, '')
+        .replace(/\\bfetch\\(/g, '(window.bcFetch||fetch)(')
         + '\\ninit(${initConfig});';
       GM_addElement(document.head, 'script', { textContent: code });
     },
