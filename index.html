@@ -129,6 +129,50 @@
     </div>
   </div>
 
+  <!-- Template picker modal -->
+  <div id="modal-template" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 id="template-modal-title">Generate TM script</h3>
+        <button id="template-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--gray-500);margin-bottom:4px">Start with the simplest template that works. Upgrade if the site blocks it.</p>
+        <div class="template-options">
+          <label class="template-option">
+            <input type="radio" name="tm-template" value="script-tag" checked>
+            <div class="template-option-body">
+              <span class="template-option-name">Script tag <span class="template-badge">simplest</span></span>
+              <span class="template-option-desc">Injects widget as <code>&lt;script type="module"&gt;</code>. Works when the site has no <code>script-src</code> CSP.</span>
+            </div>
+          </label>
+          <label class="template-option">
+            <input type="radio" name="tm-template" value="gm-element">
+            <div class="template-option-body">
+              <span class="template-option-name">GM_addElement <span class="template-badge">script-src bypass</span></span>
+              <span class="template-option-desc">Uses <code>GM_addElement</code> to inject the script tag, bypassing <code>script-src</code> CSP. Widget runs in page context.</span>
+            </div>
+          </label>
+          <label class="template-option">
+            <input type="radio" name="tm-template" value="inline">
+            <div class="template-option-body">
+              <span class="template-option-name">Fully inlined <span class="template-badge badge-heavy">Trusted Types</span></span>
+              <span class="template-option-desc">Widget JS &amp; CSS baked in at generation time. Runs in TM's isolated world — works on the most restrictive sites.</span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="footer-right">
+          <button id="template-cancel" class="btn-ghost">Cancel</button>
+          <button id="template-generate" class="btn-primary">Generate &amp; Download</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Version history modal -->
   <div id="modal-versions" class="modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="modal modal-sm">

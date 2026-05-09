@@ -98,8 +98,6 @@ async function saveScriptVersion(siteKey, scriptContent, widgetVersion, notes) {
 /* ── tampermonkey script generator ─────────────────────── */
 
 // Strip protocol/path from a domain entry so @match lines are always valid.
-// Handles bare hostnames ("example.com"), URLs ("https://example.com/path"),
-// and accidental whitespace.
 function sanitizeDomain(d) {
   const s = d.trim();
   try {
@@ -109,19 +107,73 @@ function sanitizeDomain(d) {
   }
 }
 
-async function generateScript(config, scriptVersion) {
-  const domains = (config.domains || []);
-  const matchLines = domains.flatMap((d) => {
-    const host = sanitizeDomain(d);
-    return [
-      `// @match        https://${host}/*`,
-      `// @match        https://*.${host}/*`,
-    ];
+function tmMatchLines(config) {
+  return (config.domains || []).flatMap((d) => {
+    const h = sanitizeDomain(d);
+    return [`// @match        https://${h}/*`, `// @match        https://*.${h}/*`];
   }).join('\n');
+}
 
-  // Fetch widget assets at generation time so they can be inlined.
-  // This avoids all runtime injection problems (eval, GM_addElement script,
-  // Trusted Types CSP) — the widget just runs as plain TM script code.
+function tmHeader(config, matchLines, tmVersion, grants) {
+  const grantLines = grants.map((g) => `// @grant        ${g}`).join('\n');
+  return `// ==UserScript==
+// @name         Brand Chat – ${config.brand_name}
+// @namespace    https://github.com/bwb1066/brand-chat-config-ui
+// @version      ${tmVersion}
+// @description  ${config.brand_name} AI Concierge widget
+// @author       Brand Chat Config
+${matchLines}
+${grantLines}
+// @run-at       document-idle
+// ==/UserScript==`;
+}
+
+// Template 1 — script tag injection (simplest, @grant none).
+// Works on sites with no script-src CSP restrictions.
+function tmScriptTagTemplate(config, matchLines, tmVersion) {
+  return `${tmHeader(config, matchLines, tmVersion, ['none'])}
+
+(function () {
+  'use strict';
+  console.log('[BrandChat] injecting script tag for ${config.site_key}');
+  const s = document.createElement('script');
+  s.type = 'module';
+  s.src = '${WIDGET_BASE}brand-concierge.js';
+  s.dataset.siteKey = '${config.site_key}';
+  s.dataset.supabaseUrl = '${supabaseUrl}';
+  s.dataset.supabaseAnonKey = '${anonKey}';
+  s.dataset.showTrigger = 'true';
+  s.dataset.triggerStyle = 'tab';
+  document.head.appendChild(s);
+}());
+`;
+}
+
+// Template 2 — GM_addElement script injection.
+// Bypasses script-src CSP; the loaded module still runs in page context.
+function tmGmElementTemplate(config, matchLines, tmVersion) {
+  return `${tmHeader(config, matchLines, tmVersion, ['GM_addElement'])}
+
+(function () {
+  'use strict';
+  console.log('[BrandChat] injecting via GM_addElement for ${config.site_key}');
+  GM_addElement(document.head, 'script', {
+    type: 'module',
+    src: '${WIDGET_BASE}brand-concierge.js',
+    'data-site-key': '${config.site_key}',
+    'data-supabase-url': '${supabaseUrl}',
+    'data-supabase-anon-key': '${anonKey}',
+    'data-show-trigger': 'true',
+    'data-trigger-style': 'tab',
+  });
+}());
+`;
+}
+
+// Template 3 — fully inlined (widget JS + CSS baked in at generation time).
+// Works on sites with Trusted Types or the most restrictive CSP because nothing
+// is injected at runtime — the widget runs directly in TM's isolated world.
+async function tmInlineTemplate(config, matchLines, tmVersion, scriptVersion) {
   const [cssResp, jsResp] = await Promise.all([
     fetch(WIDGET_BASE + 'brand-concierge.css'),
     fetch(WIDGET_BASE + 'brand-concierge.js'),
@@ -129,13 +181,9 @@ async function generateScript(config, scriptVersion) {
   const cssText = await cssResp.text();
   const jsText = await jsResp.text();
 
-  // Extract the widget version constant so it can be stored alongside the saved script
   const versionMatch = jsText.match(/^const WIDGET_VERSION = ['"]([^'"]+)['"]/m);
   const widgetVersion = versionMatch ? versionMatch[1] : 'unknown';
 
-  // Strip ES module syntax. Native fetch() works fine here: any @grant causes
-  // TM to run in its isolated world (content script), which bypasses the page's
-  // connect-src CSP natively since Chrome 83. No GM_xmlhttpRequest needed.
   const widgetCode = jsText
     .replace(/^export default async function/m, 'async function')
     .replace(/^export /gm, '');
@@ -151,28 +199,14 @@ async function generateScript(config, scriptVersion) {
     noCssAutoLoad: true,
   });
 
-  // @version uses the incremental save count so TM can detect updates.
-  // Format: {scriptVersion}.0.0 (e.g. 3.0.0 = 3rd save for this site)
-  const tmVersion = `${scriptVersion || 1}.0.0`;
-
-  return { widgetVersion, text: `// ==UserScript==
-// @name         Brand Chat – ${config.brand_name}
-// @namespace    https://github.com/bwb1066/brand-chat-config-ui
-// @version      ${tmVersion}
-// @description  ${config.brand_name} AI Concierge widget — widget v${widgetVersion}, script v${scriptVersion || 1}
-// @author       Brand Chat Config
-${matchLines}
-// @grant        GM_addElement
-// @run-at       document-idle
-// ==/UserScript==
+  const text = `${tmHeader(config, matchLines, tmVersion, ['GM_addElement'])}
 
 (function () {
   'use strict';
 
   var BC_CFG = ${initConfig};
-  console.log('[BrandChat] script starting', { siteKey: BC_CFG.siteKey, url: location.href, widgetVersion: '${widgetVersion}', scriptVersion: ${scriptVersion || 1} });
+  console.log('[BrandChat] script starting', { siteKey: BC_CFG.siteKey, url: location.href, widgetVersion: '${widgetVersion}', scriptVersion: ${scriptVersion} });
 
-  // Inject styles
   try {
     GM_addElement(document.head, 'style', { textContent: ${JSON.stringify(cssText)} });
     console.log('[BrandChat] CSS injected via GM_addElement');
@@ -180,7 +214,6 @@ ${matchLines}
     console.error('[BrandChat] CSS injection failed:', e);
   }
 
-  // Wrap fetch to log every network call and surface errors clearly
   var _nativeFetch = window.fetch.bind(window);
   window.fetch = function bcFetch(url, opts) {
     var method = (opts && opts.method) || 'GET';
@@ -197,7 +230,6 @@ ${matchLines}
 
 ${widgetCode}
 
-  // Call init and watch for the trigger element
   try {
     console.log('[BrandChat] calling init()');
     init(BC_CFG);
@@ -206,35 +238,56 @@ ${widgetCode}
     console.error('[BrandChat] init() threw:', e, e && e.stack);
   }
 
-  // Check whether the trigger tab appears in the DOM
-  var _checkCount = 0;
-  var _checkInterval = setInterval(function () {
-    _checkCount++;
+  var _n = 0;
+  var _t = setInterval(function () {
+    _n++;
     var trigger = document.getElementById('bc-trigger');
-    if (trigger) {
-      console.log('[BrandChat] #bc-trigger found in DOM after', _checkCount * 250, 'ms', trigger);
-      clearInterval(_checkInterval);
-    } else if (_checkCount >= 20) {
-      console.warn('[BrandChat] #bc-trigger NOT found after 5s — trigger may have been blocked or already existed');
-      clearInterval(_checkInterval);
-    }
+    if (trigger) { console.log('[BrandChat] #bc-trigger found after', _n * 250, 'ms'); clearInterval(_t); }
+    else if (_n >= 20) { console.warn('[BrandChat] #bc-trigger NOT found after 5s'); clearInterval(_t); }
   }, 250);
 
 }());
-` };
+`;
+  return { widgetVersion, text };
 }
 
-async function downloadScript(config) {
+async function generateScript(config, scriptVersion, templateId = 'script-tag') {
+  const matchLines = tmMatchLines(config);
+  const sv = scriptVersion || 1;
+  const tmVersion = `${sv}.0.0`;
+
+  if (templateId === 'gm-element') {
+    return { widgetVersion: 'external', templateId, text: tmGmElementTemplate(config, matchLines, tmVersion) };
+  }
+
+  if (templateId === 'inline') {
+    const { widgetVersion, text } = await tmInlineTemplate(config, matchLines, tmVersion, sv);
+    return { widgetVersion, templateId, text };
+  }
+
+  // default: script-tag
+  return { widgetVersion: 'external', templateId: 'script-tag', text: tmScriptTagTemplate(config, matchLines, tmVersion) };
+}
+
+let templateModalConfig = null;
+
+function openTemplateModal(config) {
+  templateModalConfig = config;
+  el('template-modal-title').textContent = `TM script — ${config.brand_name}`;
+  const radios = document.querySelectorAll('input[name="tm-template"]');
+  radios.forEach((r) => { r.checked = r.value === 'script-tag'; });
+  show('modal-template');
+}
+
+async function downloadScript(config, templateId = 'script-tag') {
   try {
-    // Determine the next script version number before generating so it can
-    // be embedded in the @version header (lets TM detect when a script is outdated).
     let nextVersion = 1;
     try {
       const existing = await fetchSiteScriptVersions(config.site_key);
       if (existing.length > 0) nextVersion = existing[0].version + 1;
     } catch { /* use 1 */ }
 
-    const { text, widgetVersion } = await generateScript(config, nextVersion);
+    const { text, widgetVersion, templateId: usedTemplate } = await generateScript(config, nextVersion, templateId);
     const blob = new Blob([text], { type: 'text/javascript' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -242,8 +295,7 @@ async function downloadScript(config) {
     a.download = `brand-chat-${config.site_key}.user.js`;
     a.click();
     URL.revokeObjectURL(url);
-    // Save to version history in the background
-    saveScriptVersion(config.site_key, text, widgetVersion)
+    saveScriptVersion(config.site_key, text, widgetVersion, `template:${usedTemplate}`)
       .then(() => refreshVersionBadge(config.site_key))
       .catch((err) => console.warn('[versions] save failed:', err));
   } catch (e) {
@@ -369,7 +421,7 @@ function renderConfigs(configs, vmap) {
     card.querySelector('.btn-script').addEventListener('click', (e) => {
       if (selectMode) return;
       e.stopPropagation();
-      downloadScript(c);
+      openTemplateModal(c);
     });
     card.querySelector('.btn-history').addEventListener('click', (e) => {
       if (selectMode) return;
@@ -670,6 +722,17 @@ el('config-form').brand_name.addEventListener('input', (e) => {
 });
 el('config-form').site_key.addEventListener('input', (e) => {
   e.target.dataset.manuallyEdited = e.target.value ? 'true' : '';
+});
+
+// Template picker modal
+el('template-close').addEventListener('click', () => hide('modal-template'));
+el('template-cancel').addEventListener('click', () => hide('modal-template'));
+el('modal-template').addEventListener('click', (e) => { if (e.target === el('modal-template')) hide('modal-template'); });
+el('template-generate').addEventListener('click', () => {
+  const selected = document.querySelector('input[name="tm-template"]:checked');
+  const templateId = selected ? selected.value : 'script-tag';
+  hide('modal-template');
+  downloadScript(templateModalConfig, templateId);
 });
 
 // Version history modal
