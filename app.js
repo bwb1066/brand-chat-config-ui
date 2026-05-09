@@ -50,7 +50,9 @@ async function deleteConfigs(siteKeys) {
       headers: hdrs(),
       body: JSON.stringify({ site_keys: batch }),
     });
-    if (!r.ok) throw new Error(`${r.status}`);
+    const body = await r.json().catch(() => ({}));
+    console.log('[delete] status:', r.status, 'body:', body);
+    if (!r.ok || body.error) throw new Error(body.error || `HTTP ${r.status}`);
   }
 }
 
@@ -395,7 +397,8 @@ el('btn-delete-selected').addEventListener('click', async () => {
     exitSelectMode();
     loadAndRender();
   } catch (err) {
-    alert(`Delete failed: ${err.message}`);
+    console.error('[delete] failed:', err);
+    alert(`Delete failed: ${err.message}\n\nCheck the browser console for details.`);
   }
 });
 
