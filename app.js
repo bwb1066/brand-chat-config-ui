@@ -96,12 +96,28 @@ async function saveScriptVersion(siteKey, scriptContent, widgetVersion, notes) {
 }
 
 /* ── tampermonkey script generator ─────────────────────── */
-async function generateScript(config) {
+
+// Strip protocol/path from a domain entry so @match lines are always valid.
+// Handles bare hostnames ("example.com"), URLs ("https://example.com/path"),
+// and accidental whitespace.
+function sanitizeDomain(d) {
+  const s = d.trim();
+  try {
+    return new URL(s.includes('://') ? s : `https://${s}`).hostname;
+  } catch {
+    return s.replace(/^https?:\/\//i, '').split('/')[0].trim();
+  }
+}
+
+async function generateScript(config, scriptVersion) {
   const domains = (config.domains || []);
-  const matchLines = domains.flatMap((d) => [
-    `// @match        https://${d}/*`,
-    `// @match        https://*.${d}/*`,
-  ]).join('\n');
+  const matchLines = domains.flatMap((d) => {
+    const host = sanitizeDomain(d);
+    return [
+      `// @match        https://${host}/*`,
+      `// @match        https://*.${host}/*`,
+    ];
+  }).join('\n');
 
   // Fetch widget assets at generation time so they can be inlined.
   // This avoids all runtime injection problems (eval, GM_addElement script,
@@ -135,11 +151,15 @@ async function generateScript(config) {
     noCssAutoLoad: true,
   });
 
+  // @version uses the incremental save count so TM can detect updates.
+  // Format: {scriptVersion}.0.0 (e.g. 3.0.0 = 3rd save for this site)
+  const tmVersion = `${scriptVersion || 1}.0.0`;
+
   return { widgetVersion, text: `// ==UserScript==
 // @name         Brand Chat – ${config.brand_name}
 // @namespace    https://github.com/bwb1066/brand-chat-config-ui
-// @version      ${widgetVersion}
-// @description  ${config.brand_name} AI Concierge widget — widget v${widgetVersion}
+// @version      ${tmVersion}
+// @description  ${config.brand_name} AI Concierge widget — widget v${widgetVersion}, script v${scriptVersion || 1}
 // @author       Brand Chat Config
 ${matchLines}
 // @grant        GM_addElement
@@ -150,7 +170,7 @@ ${matchLines}
   'use strict';
 
   var BC_CFG = ${initConfig};
-  console.log('[BrandChat] script starting', { siteKey: BC_CFG.siteKey, url: location.href, widgetVersion: '${widgetVersion}' });
+  console.log('[BrandChat] script starting', { siteKey: BC_CFG.siteKey, url: location.href, widgetVersion: '${widgetVersion}', scriptVersion: ${scriptVersion || 1} });
 
   // Inject styles
   try {
@@ -206,7 +226,15 @@ ${widgetCode}
 
 async function downloadScript(config) {
   try {
-    const { text, widgetVersion } = await generateScript(config);
+    // Determine the next script version number before generating so it can
+    // be embedded in the @version header (lets TM detect when a script is outdated).
+    let nextVersion = 1;
+    try {
+      const existing = await fetchSiteScriptVersions(config.site_key);
+      if (existing.length > 0) nextVersion = existing[0].version + 1;
+    } catch { /* use 1 */ }
+
+    const { text, widgetVersion } = await generateScript(config, nextVersion);
     const blob = new Blob([text], { type: 'text/javascript' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
