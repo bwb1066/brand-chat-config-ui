@@ -138,8 +138,8 @@ function enterSelectMode() {
   document.querySelectorAll('.config-card').forEach((card) => card.classList.add('selectable'));
   hide('btn-select');
   hide('btn-new');
+  show('btn-select-all');
   show('btn-cancel-select');
-  show('btn-delete-selected');
   el('btn-delete-selected').classList.add('hidden');
 }
 
@@ -152,6 +152,7 @@ function exitSelectMode() {
   });
   show('btn-select');
   show('btn-new');
+  hide('btn-select-all');
   hide('btn-cancel-select');
   hide('btn-delete-selected');
 }
@@ -376,6 +377,19 @@ el('settings-save').addEventListener('click', () => {
 // Select mode
 el('btn-select').addEventListener('click', enterSelectMode);
 el('btn-cancel-select').addEventListener('click', exitSelectMode);
+
+el('btn-select-all').addEventListener('click', () => {
+  const allKeys = [...document.querySelectorAll('.config-card')].map((c) => c.dataset.siteKey);
+  const allSelected = allKeys.every((k) => selected.has(k));
+  if (allSelected) {
+    allKeys.forEach((k) => selected.delete(k));
+    el('btn-select-all').textContent = 'Select all';
+  } else {
+    allKeys.forEach((k) => selected.add(k));
+    el('btn-select-all').textContent = 'Deselect all';
+  }
+  updateSelectionUI();
+});
 
 el('btn-delete-selected').addEventListener('click', async () => {
   if (selected.size === 0) return;
