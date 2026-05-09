@@ -3,17 +3,21 @@ const WIDGET_BASE = 'https://bwb1066.github.io/brand-chat-config-ui/widget/';
 
 let supabaseUrl = '';
 let anonKey = '';
+let deletePassword = '';
 
 function loadConnection() {
   supabaseUrl = localStorage.getItem('bc_supabase_url') || '';
   anonKey = localStorage.getItem('bc_anon_key') || '';
+  deletePassword = localStorage.getItem('bc_delete_password') || '';
 }
 
-function saveConnection(url, key) {
+function saveConnection(url, key, pwd) {
   supabaseUrl = url;
   anonKey = key;
+  deletePassword = pwd;
   localStorage.setItem('bc_supabase_url', url);
   localStorage.setItem('bc_anon_key', key);
+  localStorage.setItem('bc_delete_password', pwd);
 }
 
 function hdrs() {
@@ -279,6 +283,7 @@ function collectFormData() {
 function openSettings() {
   el('settings-url').value = supabaseUrl;
   el('settings-anon-key').value = anonKey;
+  el('settings-delete-password').value = deletePassword;
   show('modal-settings');
 }
 
@@ -366,14 +371,24 @@ el('modal-settings').addEventListener('click', (e) => { if (e.target === el('mod
 el('settings-save').addEventListener('click', () => {
   const url = el('settings-url').value.trim();
   const key = el('settings-anon-key').value.trim();
+  const pwd = el('settings-delete-password').value;
   if (!url || !key) return;
-  saveConnection(url, key);
+  saveConnection(url, key, pwd);
   hide('modal-settings');
   loadAndRender();
 });
 
 // Select mode
-el('btn-select').addEventListener('click', enterSelectMode);
+el('btn-select').addEventListener('click', () => {
+  if (deletePassword) {
+    const input = prompt('Enter delete password:');
+    if (input !== deletePassword) {
+      if (input !== null) alert('Incorrect password.');
+      return;
+    }
+  }
+  enterSelectMode();
+});
 el('btn-cancel-select').addEventListener('click', exitSelectMode);
 
 el('btn-select-all').addEventListener('click', () => {
