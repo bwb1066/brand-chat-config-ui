@@ -149,11 +149,57 @@ ${matchLines}
 (function () {
   'use strict';
 
-  GM_addElement(document.head, 'style', { textContent: ${JSON.stringify(cssText)} });
+  var BC_CFG = ${initConfig};
+  console.log('[BrandChat] script starting', { siteKey: BC_CFG.siteKey, url: location.href, widgetVersion: '${widgetVersion}' });
+
+  // Inject styles
+  try {
+    GM_addElement(document.head, 'style', { textContent: ${JSON.stringify(cssText)} });
+    console.log('[BrandChat] CSS injected via GM_addElement');
+  } catch (e) {
+    console.error('[BrandChat] CSS injection failed:', e);
+  }
+
+  // Wrap fetch to log every network call and surface errors clearly
+  var _nativeFetch = window.fetch.bind(window);
+  window.fetch = function bcFetch(url, opts) {
+    var method = (opts && opts.method) || 'GET';
+    console.log('[BrandChat] fetch ->', method, typeof url === 'string' ? url.replace(/eyJ[^&"]+/g, '<JWT>') : url);
+    return _nativeFetch(url, opts).then(function (r) {
+      console.log('[BrandChat] fetch <-', r.status, typeof url === 'string' ? url.replace(/eyJ[^&"]+/g, '<JWT>') : url);
+      if (!r.ok) console.warn('[BrandChat] fetch non-OK', r.status, url);
+      return r;
+    }, function (err) {
+      console.error('[BrandChat] fetch error', url, err);
+      throw err;
+    });
+  };
 
 ${widgetCode}
 
-  init(${initConfig});
+  // Call init and watch for the trigger element
+  try {
+    console.log('[BrandChat] calling init()');
+    init(BC_CFG);
+    console.log('[BrandChat] init() returned — readyState:', document.readyState);
+  } catch (e) {
+    console.error('[BrandChat] init() threw:', e, e && e.stack);
+  }
+
+  // Check whether the trigger tab appears in the DOM
+  var _checkCount = 0;
+  var _checkInterval = setInterval(function () {
+    _checkCount++;
+    var trigger = document.getElementById('bc-trigger');
+    if (trigger) {
+      console.log('[BrandChat] #bc-trigger found in DOM after', _checkCount * 250, 'ms', trigger);
+      clearInterval(_checkInterval);
+    } else if (_checkCount >= 20) {
+      console.warn('[BrandChat] #bc-trigger NOT found after 5s — trigger may have been blocked or already existed');
+      clearInterval(_checkInterval);
+    }
+  }, 250);
+
 }());
 ` };
 }
