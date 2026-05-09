@@ -117,12 +117,12 @@ async function generateScript(config) {
   const versionMatch = jsText.match(/^const WIDGET_VERSION = ['"]([^'"]+)['"]/m);
   const widgetVersion = versionMatch ? versionMatch[1] : 'unknown';
 
-  // Strip ES module syntax; replace fetch() with gmFetch() which routes
-  // through GM_xmlhttpRequest, bypassing the page's connect-src CSP.
+  // Strip ES module syntax. Native fetch() works fine here: any @grant causes
+  // TM to run in its isolated world (content script), which bypasses the page's
+  // connect-src CSP natively since Chrome 83. No GM_xmlhttpRequest needed.
   const widgetCode = jsText
     .replace(/^export default async function/m, 'async function')
-    .replace(/^export /gm, '')
-    .replace(/\bfetch\(/g, 'gmFetch(');
+    .replace(/^export /gm, '');
 
   const initConfig = JSON.stringify({
     supabaseUrl,
@@ -143,35 +143,11 @@ async function generateScript(config) {
 // @author       Brand Chat Config
 ${matchLines}
 // @grant        GM_addElement
-// @grant        GM_xmlhttpRequest
-// @connect      *
 // @run-at       document-idle
 // ==/UserScript==
 
 (function () {
   'use strict';
-
-  // Routes widget fetch() calls through GM_xmlhttpRequest (bypasses connect-src CSP).
-  function gmFetch(url, opts) {
-    return new Promise(function (resolve, reject) {
-      GM_xmlhttpRequest({
-        method: (opts && opts.method) || 'GET',
-        url: url,
-        headers: (opts && opts.headers) || {},
-        data: (opts && opts.body) || null,
-        onload: function (r) {
-          var text = r.responseText;
-          resolve({
-            ok: r.status >= 200 && r.status < 300,
-            status: r.status,
-            json: function () { return Promise.resolve(JSON.parse(text)); },
-            text: function () { return Promise.resolve(text); },
-          });
-        },
-        onerror: function () { reject(new TypeError('gmFetch network error')); },
-      });
-    });
-  }
 
   GM_addElement(document.head, 'style', { textContent: ${JSON.stringify(cssText)} });
 
