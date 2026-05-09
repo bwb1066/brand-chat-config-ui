@@ -79,21 +79,21 @@ function generateScript(config) {
 // @description  ${config.brand_name} AI Concierge widget
 // @author       Brand Chat Config
 ${matchLines}
-// @grant        none
+// @grant        GM_addElement
 // @run-at       document-idle
 // ==/UserScript==
 
 (function () {
   'use strict';
-  const script = document.createElement('script');
-  script.type = 'module';
-  script.src = '${WIDGET_BASE}brand-concierge.js';
-  script.dataset.siteKey = '${config.site_key}';
-  script.dataset.supabaseUrl = '${supabaseUrl}';
-  script.dataset.supabaseAnonKey = '${anonKey}';
-  script.dataset.showTrigger = 'true';
-  script.dataset.triggerStyle = 'tab';
-  document.head.appendChild(script);
+  GM_addElement(document.head, 'script', {
+    type: 'module',
+    src: '${WIDGET_BASE}brand-concierge.js',
+    'data-site-key': '${config.site_key}',
+    'data-supabase-url': '${supabaseUrl}',
+    'data-supabase-anon-key': '${anonKey}',
+    'data-show-trigger': 'true',
+    'data-trigger-style': 'tab',
+  });
 }());
 `;
 }
