@@ -105,16 +105,19 @@ ${matchLines}
 
   const BASE = '${WIDGET_BASE}';
 
-  // Bridge: lets page-context widget code call GM_xmlhttpRequest (bypasses connect-src CSP)
-  unsafeWindow.bcFetch = function (url, opts) {
-    return new Promise((resolve, reject) => {
+  console.log('[BrandChat] starting');
+
+  // bcFetch: routes fetch through GM_xmlhttpRequest, bypassing page connect-src CSP.
+  // Exposed on both unsafeWindow (page context) and window (TM eval context).
+  function bcFetch(url, opts) {
+    return new Promise(function (resolve, reject) {
       GM_xmlhttpRequest({
         method: (opts && opts.method) || 'GET',
         url: url,
         headers: (opts && opts.headers) || {},
         data: (opts && opts.body) || null,
         onload: function (r) {
-          const text = r.responseText;
+          var text = r.responseText;
           resolve({
             ok: r.status >= 200 && r.status < 300,
             status: r.status,
@@ -125,26 +128,36 @@ ${matchLines}
         onerror: function () { reject(new TypeError('bcFetch network error')); },
       });
     });
-  };
+  }
+  try { unsafeWindow.bcFetch = bcFetch; } catch (e) { /* sandboxed */ }
+  window.bcFetch = bcFetch;
 
-  // Fetch and inject CSS inline (bypasses script-src CSP)
+  // Inject CSS via GM_addElement (style tags are not blocked by Trusted Types)
   GM_xmlhttpRequest({
     method: 'GET',
     url: BASE + 'brand-concierge.css',
-    onload: function (r) { GM_addElement(document.head, 'style', { textContent: r.responseText }); },
+    onerror: function (e) { console.error('[BrandChat] CSS fetch error', e); },
+    onload: function (r) {
+      console.log('[BrandChat] CSS loaded', r.status);
+      GM_addElement(document.head, 'style', { textContent: r.responseText });
+    },
   });
 
-  // Fetch widget JS, strip ES module exports, route fetch through GM bridge, inject inline
+  // Fetch widget JS and eval() in TM context — bypasses script-src/Trusted Types CSP entirely.
+  // GM_addElement(script) is subject to Trusted Types on strict sites; eval() in TM is not.
   GM_xmlhttpRequest({
     method: 'GET',
     url: BASE + 'brand-concierge.js',
+    onerror: function (e) { console.error('[BrandChat] JS fetch error', e); },
     onload: function (r) {
-      const code = r.responseText
+      console.log('[BrandChat] JS loaded', r.status, r.responseText.length);
+      var code = r.responseText
         .replace(/^export default async function/m, 'async function')
         .replace(/^export /gm, '')
         .replace(/\\bfetch\\(/g, '(window.bcFetch||fetch)(')
-        + '\\ninit(${initConfig});';
-      GM_addElement(document.head, 'script', { textContent: code });
+        + '\\nconsole.log("[BrandChat] widget running");\\ninit(${initConfig});';
+      // eslint-disable-next-line no-eval
+      eval(code);
     },
   });
 }());
