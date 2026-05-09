@@ -79,6 +79,7 @@ function generateScript(config) {
     supabaseUrl,
     anonKey,
     siteKey: config.site_key,
+    brandName: config.brand_name,
     showTrigger: true,
     triggerStyle: 'tab',
     widgetBase: WIDGET_BASE,
