@@ -1,13 +1,17 @@
 /* ── connection state ───────────────────────────────────── */
 const WIDGET_BASE = 'https://bwb1066.github.io/brand-chat-config-ui/widget/';
 
+// Public read-only credentials — safe to hardcode (anon key, no RLS write access)
+const DEFAULT_URL = 'https://cyjquwhkmzyedkwuaffc.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5anF1d2hrbXp5ZWRrd3VhZmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjY4MjcsImV4cCI6MjA5MDY0MjgyN30.GkMBLXBZr9u34m4uI6ZR-2ZniLZD3RkjropjQw058k4';
+
 let supabaseUrl = '';
 let anonKey = '';
 let adminPassword = '';
 
 function loadConnection() {
-  supabaseUrl = localStorage.getItem('bc_supabase_url') || '';
-  anonKey = localStorage.getItem('bc_anon_key') || '';
+  supabaseUrl = localStorage.getItem('bc_supabase_url') || DEFAULT_URL;
+  anonKey = localStorage.getItem('bc_anon_key') || DEFAULT_KEY;
   // Password is never persisted — must be re-entered each session
   adminPassword = '';
 }
