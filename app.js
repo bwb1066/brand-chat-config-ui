@@ -3,21 +3,29 @@ const WIDGET_BASE = 'https://bwb1066.github.io/brand-chat-config-ui/widget/';
 
 let supabaseUrl = '';
 let anonKey = '';
-let deletePassword = '';
+let adminPassword = '';
 
 function loadConnection() {
   supabaseUrl = localStorage.getItem('bc_supabase_url') || '';
   anonKey = localStorage.getItem('bc_anon_key') || '';
-  deletePassword = localStorage.getItem('bc_delete_password') || '';
+  adminPassword = localStorage.getItem('bc_delete_password') || '';
 }
 
 function saveConnection(url, key, pwd) {
   supabaseUrl = url;
   anonKey = key;
-  deletePassword = pwd;
+  adminPassword = pwd;
   localStorage.setItem('bc_supabase_url', url);
   localStorage.setItem('bc_anon_key', key);
   localStorage.setItem('bc_delete_password', pwd);
+}
+
+function checkPassword() {
+  if (!adminPassword) return true;
+  const input = prompt('Enter admin password:');
+  if (input === adminPassword) return true;
+  if (input !== null) alert('Incorrect password.');
+  return false;
 }
 
 function hdrs() {
@@ -579,7 +587,7 @@ function collectFormData() {
 function openSettings() {
   el('settings-url').value = supabaseUrl;
   el('settings-anon-key').value = anonKey;
-  el('settings-delete-password').value = deletePassword;
+  el('settings-delete-password').value = adminPassword;
   show('modal-settings');
 }
 
@@ -638,6 +646,7 @@ el('modal-save').addEventListener('click', async () => {
     alert('Brand name and at least one domain are required.');
     return;
   }
+  if (!checkPassword()) return;
   try {
     await upsertConfig(data);
     closeConfigModal();
@@ -649,6 +658,7 @@ el('modal-save').addEventListener('click', async () => {
 
 el('modal-delete').addEventListener('click', async () => {
   if (!editingKey) return;
+  if (!checkPassword()) return;
   if (!confirm(`Delete "${editingKey}"? This cannot be undone.`)) return;
   try {
     await deleteConfig(editingKey);
@@ -676,13 +686,7 @@ el('settings-save').addEventListener('click', () => {
 
 // Select mode
 el('btn-select').addEventListener('click', () => {
-  if (deletePassword) {
-    const input = prompt('Enter delete password:');
-    if (input !== deletePassword) {
-      if (input !== null) alert('Incorrect password.');
-      return;
-    }
-  }
+  if (!checkPassword()) return;
   enterSelectMode();
 });
 el('btn-cancel-select').addEventListener('click', exitSelectMode);
