@@ -21,28 +21,6 @@
   </header>
 
   <main class="main">
-    <!-- Connection setup screen -->
-    <section id="screen-setup" class="screen hidden">
-      <div class="setup-card">
-        <h2>Connect to Supabase</h2>
-        <p>Enter your Supabase project details to manage brand chat configurations.</p>
-        <label class="field">
-          <span>Supabase URL</span>
-          <input type="url" id="input-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
-        </label>
-        <label class="field">
-          <span>Anon key</span>
-          <input type="text" id="input-anon-key" placeholder="eyJhbGciOiJIUzI1NiIs...">
-        </label>
-        <label class="field">
-          <span>Admin password</span>
-          <input type="password" id="input-admin-password" placeholder="Required to create, edit, or delete configs">
-        </label>
-        <button id="btn-connect" class="btn-primary">Connect</button>
-        <p id="setup-error" class="error-msg hidden"></p>
-      </div>
-    </section>
-
     <!-- Config list screen -->
     <section id="screen-list" class="screen hidden">
       <div class="list-header">
@@ -56,7 +34,7 @@
         </div>
       </div>
       <div id="config-grid" class="config-grid"></div>
-      <p id="list-empty" class="empty-msg hidden">No configurations yet. Click <strong>+ New config</strong> to get started.</p>
+      <p id="list-empty" class="empty-msg hidden">No configurations found. Use the gear icon to configure your connection, or click <strong>+ New config</strong> to add one.</p>
     </section>
   </main>
 
@@ -234,6 +212,38 @@
         <div class="footer-right">
           <button id="upload-script-cancel" class="btn-ghost">Cancel</button>
           <button id="upload-script-save" class="btn-primary">Save version</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth modal -->
+  <div id="modal-auth" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 id="auth-modal-title">Authentication required</h3>
+      </div>
+      <div class="modal-body">
+        <div id="auth-connection-fields">
+          <label class="field">
+            <span>Supabase URL</span>
+            <input type="url" id="auth-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+          </label>
+          <label class="field">
+            <span>Anon key</span>
+            <input type="text" id="auth-anon-key" placeholder="eyJhbGciOiJIUzI1NiIs...">
+          </label>
+        </div>
+        <label class="field">
+          <span>Admin password</span>
+          <input type="password" id="auth-password" placeholder="Enter admin password">
+        </label>
+        <p id="auth-error" class="error-msg hidden"></p>
+      </div>
+      <div class="modal-footer">
+        <div class="footer-right">
+          <button id="auth-cancel" class="btn-ghost">Cancel</button>
+          <button id="auth-confirm" class="btn-primary">Authenticate</button>
         </div>
       </div>
     </div>

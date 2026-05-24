@@ -21,12 +21,33 @@ function saveConnection(url, key, pwd) {
   // Password intentionally not persisted to localStorage
 }
 
-function checkPassword() {
-  if (!adminPassword) return true;
-  const input = prompt('Enter admin password:');
-  if (input === adminPassword) return true;
-  if (input !== null) alert('Incorrect password.');
-  return false;
+/* ── auth modal ─────────────────────────────────────────── */
+let pendingAuthResolve = null;
+
+function requireAuth() {
+  // Already authenticated this session — proceed immediately
+  if (adminPassword) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    pendingAuthResolve = resolve;
+    const needsConnection = !supabaseUrl || !anonKey;
+    el('auth-connection-fields').classList.toggle('hidden', !needsConnection);
+    if (supabaseUrl) el('auth-url').value = supabaseUrl;
+    if (anonKey) el('auth-anon-key').value = anonKey;
+    el('auth-password').value = '';
+    hide('auth-error');
+    show('modal-auth');
+    setTimeout(() => el('auth-password').focus(), 50);
+  });
+}
+
+function resolveAuth(ok) {
+  hide('modal-auth');
+  if (pendingAuthResolve) {
+    const resolve = pendingAuthResolve;
+    pendingAuthResolve = null;
+    resolve(ok);
+  }
 }
 
 function hdrs() {
@@ -594,44 +615,22 @@ function openSettings() {
 
 /* ── main flow ──────────────────────────────────────────── */
 async function loadAndRender() {
+  if (!supabaseUrl || !anonKey) return;
   try {
     const [configs, vmap] = await Promise.all([fetchConfigs(), fetchAllScriptVersions()]);
     renderConfigs(configs, vmap);
   } catch {
-    alert('Failed to load configurations. Check your connection settings.');
-    openSettings();
+    alert('Failed to load configurations. Check connection settings (gear icon).');
   }
 }
 
 function init() {
   loadConnection();
-
-  if (!supabaseUrl || !anonKey) {
-    show('screen-setup');
-    return;
-  }
-
   show('screen-list');
   loadAndRender();
 }
 
 /* ── event wiring ───────────────────────────────────────── */
-
-// Setup screen
-el('btn-connect').addEventListener('click', async () => {
-  const url = el('input-url').value.trim();
-  const key = el('input-anon-key').value.trim();
-  const pwd = el('input-admin-password').value;
-  if (!url || !key || !pwd) {
-    el('setup-error').textContent = 'All fields are required.';
-    show('setup-error');
-    return;
-  }
-  saveConnection(url, key, pwd);
-  hide('screen-setup');
-  show('screen-list');
-  loadAndRender();
-});
 
 // Topbar
 el('btn-new').addEventListener('click', openNewModal);
@@ -648,7 +647,7 @@ el('modal-save').addEventListener('click', async () => {
     alert('Brand name and at least one domain are required.');
     return;
   }
-  if (!checkPassword()) return;
+  if (!await requireAuth()) return;
   try {
     await upsertConfig(data);
     closeConfigModal();
@@ -660,7 +659,7 @@ el('modal-save').addEventListener('click', async () => {
 
 el('modal-delete').addEventListener('click', async () => {
   if (!editingKey) return;
-  if (!checkPassword()) return;
+  if (!await requireAuth()) return;
   if (!confirm(`Delete "${editingKey}"? This cannot be undone.`)) return;
   try {
     await deleteConfig(editingKey);
@@ -680,15 +679,45 @@ el('settings-save').addEventListener('click', () => {
   const url = el('settings-url').value.trim();
   const key = el('settings-anon-key').value.trim();
   const pwd = el('settings-delete-password').value;
-  if (!url || !key || !pwd) return;
-  saveConnection(url, key, pwd);
+  if (!url || !key) return;
+  saveConnection(url, key, pwd || adminPassword);
   hide('modal-settings');
   loadAndRender();
 });
 
+// Auth modal
+el('auth-cancel').addEventListener('click', () => resolveAuth(false));
+el('modal-auth').addEventListener('click', (e) => { if (e.target === el('modal-auth')) resolveAuth(false); });
+
+el('auth-confirm').addEventListener('click', () => {
+  const needsConnection = !supabaseUrl || !anonKey;
+  if (needsConnection) {
+    const url = el('auth-url').value.trim();
+    const key = el('auth-anon-key').value.trim();
+    if (!url || !key) {
+      el('auth-error').textContent = 'Supabase URL and anon key are required.';
+      show('auth-error');
+      return;
+    }
+    supabaseUrl = url;
+    anonKey = key;
+    localStorage.setItem('bc_supabase_url', url);
+    localStorage.setItem('bc_anon_key', key);
+    loadAndRender();
+  }
+  const pwd = el('auth-password').value;
+  if (!pwd) {
+    el('auth-error').textContent = 'Admin password is required.';
+    show('auth-error');
+    return;
+  }
+  adminPassword = pwd;
+  resolveAuth(true);
+});
+
 // Select mode
-el('btn-select').addEventListener('click', () => {
-  if (!checkPassword()) return;
+el('btn-select').addEventListener('click', async () => {
+  if (!await requireAuth()) return;
   enterSelectMode();
 });
 el('btn-cancel-select').addEventListener('click', exitSelectMode);
