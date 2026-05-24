@@ -8,7 +8,8 @@ let adminPassword = '';
 function loadConnection() {
   supabaseUrl = localStorage.getItem('bc_supabase_url') || '';
   anonKey = localStorage.getItem('bc_anon_key') || '';
-  adminPassword = localStorage.getItem('bc_delete_password') || '';
+  // Password is never persisted — must be re-entered each session
+  adminPassword = '';
 }
 
 function saveConnection(url, key, pwd) {
@@ -17,7 +18,7 @@ function saveConnection(url, key, pwd) {
   adminPassword = pwd;
   localStorage.setItem('bc_supabase_url', url);
   localStorage.setItem('bc_anon_key', key);
-  localStorage.setItem('bc_delete_password', pwd);
+  // Password intentionally not persisted to localStorage
 }
 
 function checkPassword() {
@@ -587,7 +588,7 @@ function collectFormData() {
 function openSettings() {
   el('settings-url').value = supabaseUrl;
   el('settings-anon-key').value = anonKey;
-  el('settings-delete-password').value = adminPassword;
+  el('settings-delete-password').value = '';
   show('modal-settings');
 }
 
@@ -620,12 +621,13 @@ function init() {
 el('btn-connect').addEventListener('click', async () => {
   const url = el('input-url').value.trim();
   const key = el('input-anon-key').value.trim();
-  if (!url || !key) {
-    el('setup-error').textContent = 'Both fields are required.';
+  const pwd = el('input-admin-password').value;
+  if (!url || !key || !pwd) {
+    el('setup-error').textContent = 'All fields are required.';
     show('setup-error');
     return;
   }
-  saveConnection(url, key);
+  saveConnection(url, key, pwd);
   hide('screen-setup');
   show('screen-list');
   loadAndRender();
@@ -678,7 +680,7 @@ el('settings-save').addEventListener('click', () => {
   const url = el('settings-url').value.trim();
   const key = el('settings-anon-key').value.trim();
   const pwd = el('settings-delete-password').value;
-  if (!url || !key) return;
+  if (!url || !key || !pwd) return;
   saveConnection(url, key, pwd);
   hide('modal-settings');
   loadAndRender();
