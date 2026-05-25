@@ -18,13 +18,11 @@
   width: 60%;
   max-width: 1100px;
   height: auto;
-  max-height: 75vh;
   display: flex;
   flex-direction: column;
   position: relative;
   box-shadow: 0 20px 60px rgb(0 0 0 / 15%);
   overflow: hidden;
-  transition: height .3s ease;
 }
 
 .bc-dialog.has-messages {
@@ -151,10 +149,15 @@
 
 /* messages */
 .bc-messages-wrap {
+  display: none;
   flex: 1;
   position: relative;
   overflow: hidden;
   min-height: 0;
+}
+
+.bc-dialog.has-messages .bc-messages-wrap {
+  display: block;
 }
 
 .bc-messages {
