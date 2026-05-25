@@ -273,6 +273,7 @@ function buildConfigPanel(onSaved) {
 
 /* ── messages ─────────────────────────────────────────── */
 function addMessage(container, text, role, citations, suggestions, upsells, bookingUrl, messageIdx) {
+  container.closest('.bc-dialog')?.classList.add('has-messages');
   const msg = document.createElement('div');
   msg.className = `bc-message bc-${role}`;
 
