@@ -330,7 +330,7 @@ function addMessage(container, text, role, citations, suggestions, recommendatio
           <div class="bc-recommendation-reason">${u.reason}</div>
           <div class="bc-recommendation-footer">
             <span class="bc-recommendation-price">${u.price}</span>
-            <span class="bc-recommendation-cta">Add to booking →</span>
+            <span class="bc-recommendation-cta">View in new window</span>
           </div>`;
         recommendationWrap.append(card);
       });
