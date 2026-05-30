@@ -45,6 +45,32 @@ body {
   font-weight: 600;
   font-size: 15px;
   letter-spacing: -0.01em;
+  min-width: 0;
+}
+
+.topbar-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.topbar-subtitle {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.3;
+  max-width: 560px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar-actions {
@@ -653,6 +679,13 @@ body {
 
 .catalog-status.catalog-error   { color: var(--red); }
 .catalog-status.catalog-success { color: #2f9e44; }
+
+/* ── welcome modal ──────────────────────────────────────── */
+.welcome-modal .welcome-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--gray-700);
+}
 
 /* ── misc ───────────────────────────────────────────────── */
 .hidden { display: none !important; }

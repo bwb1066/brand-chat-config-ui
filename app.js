@@ -1003,5 +1003,29 @@ el('btn-clear-catalog').addEventListener('click', async () => {
   }
 });
 
+/* ── welcome popup ──────────────────────────────────────── */
+(function initWelcome() {
+  const STORAGE_KEY = 'bc_welcome_seen';
+  const backdrop = el('modal-welcome');
+  const closeBtn = el('welcome-close');
+  const dontShow = el('welcome-dont-show');
+
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    backdrop.classList.remove('hidden');
+  }
+
+  closeBtn.addEventListener('click', () => {
+    if (dontShow.checked) localStorage.setItem(STORAGE_KEY, '1');
+    backdrop.classList.add('hidden');
+  });
+
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) {
+      if (dontShow.checked) localStorage.setItem(STORAGE_KEY, '1');
+      backdrop.classList.add('hidden');
+    }
+  });
+}());
+
 /* ── kick off ───────────────────────────────────────────── */
 init();

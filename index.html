@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Brand Chat — Config</title>
+  <title>Concierge Studio</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-brand">
       <svg width="20" height="18" viewBox="0 0 24 22" fill="none"><path d="M14.2353 21.6209L12.4925 16.7699H8.11657L11.7945 7.51237L17.3741 21.6209H24L15.1548 0.379395H8.90929L0 21.6209H14.2353Z" fill="#EB1000"/></svg>
-      Brand Chat Config
+      <div class="topbar-title-group">
+        <span class="topbar-title">Concierge Studio</span>
+        <span class="topbar-subtitle">Configure and deploy your Brand Concierge AI — backed by RAG pipelines, pgvector semantic product retrieval, and a tunable brand expression model for tone, audience, and response quality.</span>
+      </div>
     </div>
     <div class="topbar-actions">
       <button id="btn-settings" class="btn-icon" title="Connection settings">
@@ -416,6 +419,27 @@
         <div class="footer-right">
           <button id="settings-cancel" class="btn-ghost">Cancel</button>
           <button id="settings-save" class="btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Welcome popup -->
+  <div id="modal-welcome" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="modal modal-sm welcome-modal">
+      <div class="modal-header">
+        <h3 id="welcome-title">Welcome to Concierge Studio</h3>
+      </div>
+      <div class="modal-body">
+        <p class="welcome-desc">Concierge Studio is the control plane for your AI brand assistant. Upload your product catalog and let semantic embeddings (pgvector + OpenAI text-embedding-3-small) power RAG-based recommendations at query time. Tune six dimensions of brand expression, set B2B or B2C audience mode, control response length, and configure product advisory behavior — all surfaced through a live chat widget you deploy in minutes.</p>
+        <label class="field-check">
+          <input type="checkbox" id="welcome-dont-show">
+          <span>Don't show this again</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <div class="footer-right">
+          <button id="welcome-close" class="btn-primary">Get started</button>
         </div>
       </div>
     </div>
