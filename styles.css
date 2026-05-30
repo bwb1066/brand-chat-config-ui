@@ -50,27 +50,32 @@ body {
 
 .topbar-title-group {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
 .topbar-title {
   font-size: 15px;
   font-weight: 600;
-  line-height: 1.2;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.topbar-title-sep {
+  color: rgba(255,255,255,0.3);
+  font-weight: 300;
+  flex-shrink: 0;
 }
 
 .topbar-subtitle {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: rgba(255,255,255,0.55);
-  line-height: 1.3;
-  max-width: 560px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .topbar-actions {
