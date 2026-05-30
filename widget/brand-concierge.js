@@ -325,6 +325,7 @@ function addMessage(container, text, role, citations, suggestions, upsells, book
         card.rel = 'noopener';
         card.className = 'bc-upsell-card';
         card.innerHTML = `
+          ${u.image ? `<img src="${u.image}" alt="" class="bc-upsell-img">` : ''}
           <div class="bc-upsell-title">${u.title}</div>
           <div class="bc-upsell-reason">${u.reason}</div>
           <div class="bc-upsell-footer">
