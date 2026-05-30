@@ -100,6 +100,146 @@
           <input type="checkbox" name="disable_citations">
           <span>Disable citations</span>
         </label>
+
+        <!-- Audience -->
+        <div class="form-section">
+          <h4 class="form-section-title">Audience</h4>
+          <div class="audience-toggle">
+            <label class="audience-option">
+              <input type="radio" name="audience_type" value="b2c" checked>
+              <div class="audience-option-body">
+                <strong>B2C</strong>
+                <span>Consumer-facing — personal benefits and ease of use</span>
+              </div>
+            </label>
+            <label class="audience-option">
+              <input type="radio" name="audience_type" value="b2b">
+              <div class="audience-option-body">
+                <strong>B2B</strong>
+                <span>Business-facing — ROI, efficiency, and procurement</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Product advisory -->
+        <div class="form-section">
+          <h4 class="form-section-title">Product advisory</h4>
+          <label class="field">
+            <span>Product &amp; audience context</span>
+            <textarea name="product_advisory_context" rows="2" placeholder="e.g. key product benefits, common user needs, typical purchase drivers"></textarea>
+          </label>
+          <label class="field">
+            <span>Business rules</span>
+            <textarea name="product_advisory_rules" rows="2" placeholder="e.g. prioritize specific product types, avoid recommending certain products"></textarea>
+          </label>
+          <label class="field">
+            <span>Keywords to follow or avoid</span>
+            <textarea name="product_advisory_keywords" rows="2" placeholder="e.g. avoid competitor keywords, redirect specific phrases"></textarea>
+          </label>
+        </div>
+
+        <!-- Brand expression -->
+        <div class="form-section">
+          <h4 class="form-section-title">Brand expression</h4>
+          <p class="form-section-desc">Adjust the brand voice and tone</p>
+          <div class="brand-expression">
+            <div class="brand-dim">
+              <span class="brand-dim-label">Formality</span>
+              <div class="brand-dim-options">
+                <label class="brand-option"><input type="radio" name="be_formality" value="formal"><span>Formal<small>Precise, polished, and businesslike.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_formality" value="semi-formal"><span>Semi-formal<small>Balanced professionalism with warmth.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_formality" value="casual"><span>Casual<small>Conversational, approachable, and relaxed.</small></span></label>
+              </div>
+            </div>
+            <div class="brand-dim">
+              <span class="brand-dim-label">Warmth</span>
+              <div class="brand-dim-options">
+                <label class="brand-option"><input type="radio" name="be_warmth" value="warm"><span>Warm<small>Empathetic and people-first.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_warmth" value="neutral"><span>Neutral<small>Balanced and even-toned.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_warmth" value="cool"><span>Cool<small>Minimal emotion and focused on clarity.</small></span></label>
+              </div>
+            </div>
+            <div class="brand-dim">
+              <span class="brand-dim-label">Playfulness</span>
+              <div class="brand-dim-options">
+                <label class="brand-option"><input type="radio" name="be_playfulness" value="playful"><span>Playful<small>Witty and humorous.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_playfulness" value="semi-playful"><span>Semi-playful<small>Fact-focused with a touch of levity.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_playfulness" value="serious"><span>Serious<small>Sincere and no-nonsense.</small></span></label>
+              </div>
+            </div>
+            <div class="brand-dim">
+              <span class="brand-dim-label">Energy</span>
+              <div class="brand-dim-options">
+                <label class="brand-option"><input type="radio" name="be_energy" value="calm"><span>Calm<small>Steady and composed.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_energy" value="lively"><span>Lively<small>Upbeat and engaging, yet polished.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_energy" value="enthusiastic"><span>Enthusiastic<small>Energetic and expressive.</small></span></label>
+              </div>
+            </div>
+            <div class="brand-dim">
+              <span class="brand-dim-label">Sophistication</span>
+              <div class="brand-dim-options">
+                <label class="brand-option"><input type="radio" name="be_sophistication" value="premium"><span>Premium<small>Exclusive and aspirational.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_sophistication" value="elevated"><span>Elevated<small>Sophisticated but approachable.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_sophistication" value="accessible"><span>Accessible<small>Inclusive and down-to-earth.</small></span></label>
+              </div>
+            </div>
+            <div class="brand-dim">
+              <span class="brand-dim-label">Boldness</span>
+              <div class="brand-dim-options">
+                <label class="brand-option"><input type="radio" name="be_boldness" value="bold"><span>Bold<small>Bold and highly confident.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_boldness" value="assertive"><span>Assertive<small>Direct yet respectful.</small></span></label>
+                <label class="brand-option"><input type="radio" name="be_boldness" value="modest"><span>Modest<small>Measured and reserved.</small></span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Response length -->
+        <div class="form-section">
+          <h4 class="form-section-title">Response length</h4>
+          <div class="response-length-picker">
+            <label class="length-option">
+              <input type="radio" name="response_length" value="concise">
+              <div class="length-option-body">
+                <span class="length-icon">≡</span>
+                <strong>Concise</strong>
+                <span>Brief and to the point</span>
+              </div>
+            </label>
+            <label class="length-option">
+              <input type="radio" name="response_length" value="moderate" checked>
+              <div class="length-option-body">
+                <span class="length-icon">≡≡</span>
+                <strong>Moderate</strong>
+                <span>Balanced detail</span>
+              </div>
+            </label>
+            <label class="length-option">
+              <input type="radio" name="response_length" value="detailed">
+              <div class="length-option-body">
+                <span class="length-icon">≡≡≡</span>
+                <strong>Detailed</strong>
+                <span>Comprehensive</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Product catalog -->
+        <div class="form-section">
+          <h4 class="form-section-title">Product catalog</h4>
+          <label class="field">
+            <span>Products JSON <small>array of {productPageUrl, productDescription}</small></span>
+            <textarea id="product-catalog-json" rows="5" placeholder='[{"productPageUrl": "https://...", "productDescription": "..."}]'></textarea>
+          </label>
+          <div class="catalog-actions">
+            <span id="product-count-badge" class="pill" style="display:none"></span>
+            <button type="button" id="btn-upload-catalog" class="btn-primary">Upload catalog</button>
+            <button type="button" id="btn-clear-catalog" class="btn-danger hidden">Clear catalog</button>
+          </div>
+          <p id="catalog-status" class="catalog-status"></p>
+        </div>
       </form>
       <div class="modal-footer">
         <button id="modal-delete" class="btn-danger hidden">Delete</button>

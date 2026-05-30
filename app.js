@@ -98,6 +98,37 @@ async function deleteConfig(siteKey) {
   return deleteConfigs([siteKey]);
 }
 
+/* ── product catalog api ────────────────────────────────── */
+async function fetchProductCount(siteKey) {
+  const r = await fetch(`${supabaseUrl}/functions/v1/brand-products?site_key=${encodeURIComponent(siteKey)}`, { headers: hdrs() });
+  if (!r.ok) return 0;
+  const data = await r.json();
+  return data.count || 0;
+}
+
+async function uploadProducts(siteKey, products) {
+  const r = await fetch(`${supabaseUrl}/functions/v1/brand-products`, {
+    method: 'POST',
+    headers: hdrs(),
+    body: JSON.stringify({ site_key: siteKey, products }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+async function clearProducts(siteKey) {
+  const r = await fetch(`${supabaseUrl}/functions/v1/brand-products`, {
+    method: 'DELETE',
+    headers: hdrs(),
+    body: JSON.stringify({ site_key: siteKey }),
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
 /* ── script version api ─────────────────────────────────── */
 async function fetchAllScriptVersions() {
   try {
@@ -554,10 +585,26 @@ function openUploadScript(prefillSiteKey) {
 /* ── config modal ───────────────────────────────────────── */
 let editingKey = null;
 
+function resetNewFields() {
+  const b2c = document.querySelector('input[name="audience_type"][value="b2c"]');
+  if (b2c) b2c.checked = true;
+  const moderate = document.querySelector('input[name="response_length"][value="moderate"]');
+  if (moderate) moderate.checked = true;
+  ['formality', 'warmth', 'playfulness', 'energy', 'sophistication', 'boldness'].forEach((dim) => {
+    document.querySelectorAll(`input[name="be_${dim}"]`).forEach((r) => { r.checked = false; });
+  });
+  el('product-catalog-json').value = '';
+  el('catalog-status').textContent = '';
+  el('catalog-status').className = 'catalog-status';
+  el('product-count-badge').style.display = 'none';
+  hide('btn-clear-catalog');
+}
+
 function openNewModal() {
   editingKey = null;
   el('modal-title').textContent = 'New configuration';
   el('config-form').reset();
+  resetNewFields();
   hide('modal-delete');
   show('modal-config');
 }
@@ -580,6 +627,38 @@ function openEditModal(config) {
   form.chat_title.value = config.chat_title || '';
   form.disable_citations.checked = config.disable_citations || false;
 
+  // Audience type
+  const audienceRadio = document.querySelector(`input[name="audience_type"][value="${config.audience_type || 'b2c'}"]`);
+  if (audienceRadio) audienceRadio.checked = true;
+
+  // Product advisory
+  form.product_advisory_context.value = config.product_advisory_context || '';
+  form.product_advisory_rules.value = config.product_advisory_rules || '';
+  form.product_advisory_keywords.value = config.product_advisory_keywords || '';
+
+  // Brand expression
+  const expr = config.brand_expression || {};
+  ['formality', 'warmth', 'playfulness', 'energy', 'sophistication', 'boldness'].forEach((dim) => {
+    document.querySelectorAll(`input[name="be_${dim}"]`).forEach((r) => { r.checked = false; });
+    const val = expr[dim];
+    if (val) {
+      const radio = document.querySelector(`input[name="be_${dim}"][value="${val}"]`);
+      if (radio) radio.checked = true;
+    }
+  });
+
+  // Response length
+  const rlRadio = document.querySelector(`input[name="response_length"][value="${config.response_length || 'moderate'}"]`);
+  if (rlRadio) rlRadio.checked = true;
+
+  // Product catalog — reset textarea, load count
+  el('product-catalog-json').value = '';
+  el('catalog-status').textContent = '';
+  el('catalog-status').className = 'catalog-status';
+  el('product-count-badge').style.display = 'none';
+  hide('btn-clear-catalog');
+  fetchProductCount(config.site_key).then(updateProductCountBadge).catch(() => {});
+
   show('modal-delete');
   show('modal-config');
 }
@@ -589,11 +668,23 @@ function closeConfigModal() {
   editingKey = null;
 }
 
+function collectBrandExpression() {
+  const dims = ['formality', 'warmth', 'playfulness', 'energy', 'sophistication', 'boldness'];
+  const expr = {};
+  dims.forEach((dim) => {
+    const checked = document.querySelector(`input[name="be_${dim}"]:checked`);
+    if (checked) expr[dim] = checked.value;
+  });
+  return expr;
+}
+
 function collectFormData() {
   const form = el('config-form');
   const brandName = form.brand_name.value.trim();
   const siteKey = form.site_key.value.trim() || toSiteKey(brandName);
   const domains = form.domains.value.split(',').map((d) => d.trim()).filter(Boolean);
+  const audienceChecked = document.querySelector('input[name="audience_type"]:checked');
+  const rlChecked = document.querySelector('input[name="response_length"]:checked');
   return {
     site_key: siteKey,
     brand_name: brandName,
@@ -606,6 +697,12 @@ function collectFormData() {
     initial_prompt: form.initial_prompt.value.trim() || null,
     chat_title: form.chat_title.value.trim() || null,
     disable_citations: form.disable_citations.checked,
+    audience_type: audienceChecked ? audienceChecked.value : 'b2c',
+    product_advisory_context: form.product_advisory_context.value.trim() || null,
+    product_advisory_rules: form.product_advisory_rules.value.trim() || null,
+    product_advisory_keywords: form.product_advisory_keywords.value.trim() || null,
+    brand_expression: collectBrandExpression(),
+    response_length: rlChecked ? rlChecked.value : 'moderate',
   };
 }
 
@@ -808,6 +905,101 @@ el('upload-script-save').addEventListener('click', async () => {
   } finally {
     el('upload-script-save').disabled = false;
     el('upload-script-save').textContent = 'Save version';
+  }
+});
+
+/* ── product catalog ────────────────────────────────────── */
+function updateProductCountBadge(count) {
+  const badge = el('product-count-badge');
+  if (count > 0) {
+    badge.textContent = `${count} product${count === 1 ? '' : 's'} indexed`;
+    badge.style.display = '';
+    show('btn-clear-catalog');
+  } else {
+    badge.style.display = 'none';
+    hide('btn-clear-catalog');
+  }
+}
+
+el('btn-upload-catalog').addEventListener('click', async () => {
+  const raw = el('product-catalog-json').value.trim();
+  const statusEl = el('catalog-status');
+
+  if (!raw) {
+    statusEl.textContent = 'Paste a products JSON array first.';
+    statusEl.className = 'catalog-status catalog-error';
+    return;
+  }
+
+  let products;
+  try {
+    products = JSON.parse(raw);
+    if (!Array.isArray(products)) throw new Error('Must be a JSON array');
+    if (products.length === 0) throw new Error('Array is empty');
+  } catch (e) {
+    statusEl.textContent = `Invalid JSON: ${e.message}`;
+    statusEl.className = 'catalog-status catalog-error';
+    return;
+  }
+
+  // If no editingKey yet, save the config first
+  if (!editingKey) {
+    const data = collectFormData();
+    if (!data.brand_name || !data.domains.length) {
+      statusEl.textContent = 'Fill in brand name and domain before uploading.';
+      statusEl.className = 'catalog-status catalog-error';
+      return;
+    }
+    if (!await requireAuth()) return;
+    try {
+      statusEl.textContent = 'Saving config first…';
+      statusEl.className = 'catalog-status';
+      const saved = await upsertConfig(data);
+      editingKey = saved.site_key;
+    } catch (e) {
+      statusEl.textContent = `Config save failed: ${e.message}`;
+      statusEl.className = 'catalog-status catalog-error';
+      return;
+    }
+  } else if (!await requireAuth()) {
+    return;
+  }
+
+  const btn = el('btn-upload-catalog');
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+  statusEl.textContent = `Embedding ${products.length} product${products.length === 1 ? '' : 's'}… this may take a moment.`;
+  statusEl.className = 'catalog-status';
+
+  try {
+    const result = await uploadProducts(editingKey, products);
+    statusEl.textContent = `${result.inserted} product${result.inserted === 1 ? '' : 's'} indexed successfully.`;
+    statusEl.className = 'catalog-status catalog-success';
+    el('product-catalog-json').value = '';
+    updateProductCountBadge(result.inserted);
+    loadAndRender();
+  } catch (e) {
+    statusEl.textContent = `Upload failed: ${e.message}`;
+    statusEl.className = 'catalog-status catalog-error';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Upload catalog';
+  }
+});
+
+el('btn-clear-catalog').addEventListener('click', async () => {
+  if (!editingKey) return;
+  if (!confirm('Remove all indexed products for this brand? This cannot be undone.')) return;
+  if (!await requireAuth()) return;
+  const statusEl = el('catalog-status');
+  try {
+    await clearProducts(editingKey);
+    updateProductCountBadge(0);
+    statusEl.textContent = 'Product catalog cleared.';
+    statusEl.className = 'catalog-status';
+  } catch (e) {
+    statusEl.textContent = `Clear failed: ${e.message}`;
+    statusEl.className = 'catalog-status catalog-error';
   }
 });
 
