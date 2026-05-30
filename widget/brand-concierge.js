@@ -272,7 +272,7 @@ function buildConfigPanel(onSaved) {
 }
 
 /* ── messages ─────────────────────────────────────────── */
-function addMessage(container, text, role, citations, suggestions, upsells, bookingUrl, messageIdx) {
+function addMessage(container, text, role, citations, suggestions, recommendations, bookingUrl, messageIdx) {
   container.closest('.bc-dialog')?.classList.add('has-messages');
   const msg = document.createElement('div');
   msg.className = `bc-message bc-${role}`;
@@ -315,26 +315,26 @@ function addMessage(container, text, role, citations, suggestions, upsells, book
       msg.append(bookBtn);
     }
 
-    if (upsells?.length) {
-      const upsellWrap = document.createElement('div');
-      upsellWrap.className = 'bc-upsells';
-      upsells.forEach((u) => {
+    if (recommendations?.length) {
+      const recommendationWrap = document.createElement('div');
+      recommendationWrap.className = 'bc-recommendations';
+      recommendations.forEach((u) => {
         const card = document.createElement('a');
         card.href = u.url;
         card.target = '_blank';
         card.rel = 'noopener';
-        card.className = 'bc-upsell-card';
+        card.className = 'bc-recommendation-card';
         card.innerHTML = `
-          ${u.image ? `<img src="${u.image}" alt="" class="bc-upsell-img">` : ''}
-          <div class="bc-upsell-title">${u.title}</div>
-          <div class="bc-upsell-reason">${u.reason}</div>
-          <div class="bc-upsell-footer">
-            <span class="bc-upsell-price">${u.price}</span>
-            <span class="bc-upsell-cta">Add to booking →</span>
+          ${u.image ? `<img src="${u.image}" alt="" class="bc-recommendation-img">` : ''}
+          <div class="bc-recommendation-title">${u.title}</div>
+          <div class="bc-recommendation-reason">${u.reason}</div>
+          <div class="bc-recommendation-footer">
+            <span class="bc-recommendation-price">${u.price}</span>
+            <span class="bc-recommendation-cta">Add to booking →</span>
           </div>`;
-        upsellWrap.append(card);
+        recommendationWrap.append(card);
       });
-      msg.append(upsellWrap);
+      msg.append(recommendationWrap);
     }
 
     if (suggestions?.length) {
@@ -442,7 +442,7 @@ async function sendMessage(messagesContainer, text) {
     let reply = data.text || '';
     const citations = data.citations || [];
     const suggestions = data.suggestions || [];
-    const upsells = data.upsells || [];
+    const recommendations = data.recommendations || [];
     const bookingUrl = data.booking_url || null;
     if (data.contactUrl) cfg.contactUrl = data.contactUrl;
     if (data.thread_reset) {
@@ -457,8 +457,8 @@ async function sendMessage(messagesContainer, text) {
     reply = reply.replace(/【[^】]*】/g, '');
     if (shouldShowContact(text)) suggestions.push('__CONTACT__');
 
-    addMessage(messagesContainer, reply, 'assistant', citations, suggestions, upsells, bookingUrl, history.length);
-    history.push({ role: 'assistant', content: reply, citations, suggestions, upsells, bookingUrl });
+    addMessage(messagesContainer, reply, 'assistant', citations, suggestions, recommendations, bookingUrl, history.length);
+    history.push({ role: 'assistant', content: reply, citations, suggestions, recommendations, bookingUrl });
   } catch (err) {
     console.error('[brand-concierge] fetch error:', err);
     thinking.remove();
@@ -560,7 +560,7 @@ function buildModal(initialQuery) {
   document.body.style.overflow = 'hidden';
   modal = overlay;
 
-  history.forEach((m, idx) => addMessage(messages, m.content, m.role, m.citations, m.suggestions, m.upsells, m.bookingUrl, idx));
+  history.forEach((m, idx) => addMessage(messages, m.content, m.role, m.citations, m.suggestions, m.recommendations, m.bookingUrl, idx));
   if (initialQuery) sendMessage(messages, initialQuery);
 }
 
