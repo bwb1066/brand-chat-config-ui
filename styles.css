@@ -24,6 +24,30 @@ body {
   min-height: 100vh;
 }
 
+/* ── update banner ──────────────────────────────────────── */
+.update-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  background: var(--blue);
+  color: #fff;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+.update-banner button {
+  margin-left: 12px;
+  background: #fff;
+  color: var(--blue);
+  border: none;
+  border-radius: 4px;
+  padding: 2px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.update-banner button:hover { background: var(--gray-100); }
+
 /* ── topbar ─────────────────────────────────────────────── */
 .topbar {
   display: flex;

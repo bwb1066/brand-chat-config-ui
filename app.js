@@ -1,3 +1,30 @@
+/* ── version check ──────────────────────────────────────── */
+(async function initVersionCheck() {
+  let baseline = null;
+  try {
+    const r = await fetch('app.js', { method: 'HEAD', cache: 'no-store' });
+    baseline = r.headers.get('etag') || r.headers.get('last-modified');
+  } catch {}
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible' || !baseline) return;
+    try {
+      const r = await fetch('app.js', { method: 'HEAD', cache: 'no-store' });
+      const current = r.headers.get('etag') || r.headers.get('last-modified');
+      if (current && current !== baseline) showUpdateBanner();
+    } catch {}
+  });
+
+  function showUpdateBanner() {
+    if (document.getElementById('update-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'update-banner';
+    banner.className = 'update-banner';
+    banner.innerHTML = 'A new version is available. <button onclick="location.reload()">Reload now</button>';
+    document.body.prepend(banner);
+  }
+})();
+
 /* ── connection state ───────────────────────────────────── */
 const WIDGET_BASE = 'https://bwb1066.github.io/brand-chat-config-ui/widget/';
 
