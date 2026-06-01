@@ -62,6 +62,14 @@ function hdrs() {
   };
 }
 
+function writeHdrs() {
+  return {
+    'Content-Type': 'application/json',
+    apikey: anonKey,
+    Authorization: `Bearer ${adminPassword}`,
+  };
+}
+
 /* ── api ────────────────────────────────────────────────── */
 async function fetchConfigs() {
   const r = await fetch(`${supabaseUrl}/functions/v1/brand-config`, { headers: hdrs() });
@@ -72,7 +80,7 @@ async function fetchConfigs() {
 async function upsertConfig(data) {
   const r = await fetch(`${supabaseUrl}/functions/v1/brand-config`, {
     method: 'POST',
-    headers: hdrs(),
+    headers: writeHdrs(),
     body: JSON.stringify(data),
   });
   if (!r.ok) throw new Error(`${r.status}`);
@@ -85,7 +93,7 @@ async function deleteConfigs(siteKeys) {
     const batch = siteKeys.slice(i, i + batchSize);
     const r = await fetch(`${supabaseUrl}/functions/v1/brand-config`, {
       method: 'DELETE',
-      headers: hdrs(),
+      headers: writeHdrs(),
       body: JSON.stringify({ site_keys: batch }),
     });
     const body = await r.json().catch(() => ({}));
@@ -109,7 +117,7 @@ async function fetchProductCount(siteKey) {
 async function uploadProducts(siteKey, products) {
   const r = await fetch(`${supabaseUrl}/functions/v1/brand-products`, {
     method: 'POST',
-    headers: hdrs(),
+    headers: writeHdrs(),
     body: JSON.stringify({ site_key: siteKey, products }),
   });
   if (!r.ok) {
@@ -122,7 +130,7 @@ async function uploadProducts(siteKey, products) {
 async function clearProducts(siteKey) {
   const r = await fetch(`${supabaseUrl}/functions/v1/brand-products`, {
     method: 'DELETE',
-    headers: hdrs(),
+    headers: writeHdrs(),
     body: JSON.stringify({ site_key: siteKey }),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -153,7 +161,7 @@ async function fetchScriptVersion(siteKey, version) {
 async function saveScriptVersion(siteKey, scriptContent, widgetVersion, notes) {
   const r = await fetch(`${supabaseUrl}/functions/v1/brand-scripts`, {
     method: 'POST',
-    headers: hdrs(),
+    headers: writeHdrs(),
     body: JSON.stringify({ site_key: siteKey, script_content: scriptContent, widget_version: widgetVersion, notes }),
   });
   if (!r.ok) throw new Error(`${r.status}`);
@@ -808,7 +816,7 @@ el('auth-confirm').addEventListener('click', () => {
   }
   const pwd = el('auth-password').value;
   if (!pwd) {
-    el('auth-error').textContent = 'Admin password is required.';
+    el('auth-error').textContent = 'Service role key is required.';
     show('auth-error');
     return;
   }
