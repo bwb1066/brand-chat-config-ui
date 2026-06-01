@@ -804,7 +804,7 @@ el('auth-confirm').addEventListener('click', () => {
     const url = el('auth-url').value.trim();
     const key = el('auth-anon-key').value.trim();
     if (!url || !key) {
-      el('auth-error').textContent = 'Supabase URL and anon key are required.';
+      el('auth-error').textContent = 'Database URL and secret are required.';
       show('auth-error');
       return;
     }
