@@ -238,7 +238,7 @@ function tmScriptTagTemplate(config, matchLines, tmVersion) {
   console.log('[BrandChat] injecting script tag for ${config.site_key}');
   const s = document.createElement('script');
   s.type = 'module';
-  s.src = '${WIDGET_BASE}brand-concierge.js';
+  s.src = '${WIDGET_BASE}brand-concierge.js?v=${tmVersion}';
   s.dataset.siteKey = '${config.site_key}';
   s.dataset.supabaseUrl = '${supabaseUrl}';
   s.dataset.supabaseAnonKey = '${anonKey}';
@@ -259,7 +259,7 @@ function tmGmElementTemplate(config, matchLines, tmVersion) {
   console.log('[BrandChat] injecting via GM_addElement for ${config.site_key}');
   GM_addElement(document.head, 'script', {
     type: 'module',
-    src: '${WIDGET_BASE}brand-concierge.js',
+    src: '${WIDGET_BASE}brand-concierge.js?v=${tmVersion}',
     'data-site-key': '${config.site_key}',
     'data-supabase-url': '${supabaseUrl}',
     'data-supabase-anon-key': '${anonKey}',
