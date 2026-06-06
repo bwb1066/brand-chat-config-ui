@@ -512,6 +512,7 @@ async function startAvatar(videoEl, toggleBtn) {
     toggleBtn.disabled = false;
     toggleBtn.setAttribute('aria-pressed', 'true');
     toggleBtn.title = 'Switch to text';
+    videoEl.closest('.bc-dialog').classList.add('has-messages');
     videoEl.classList.remove('bc-avatar-hidden');
     videoEl.closest('.bc-messages-wrap').querySelector('.bc-messages').classList.add('bc-avatar-hidden');
   } catch (e) {
