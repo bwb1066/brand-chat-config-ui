@@ -656,6 +656,7 @@ function openEditModal(config) {
   form.instructions.value = config.instructions || '';
   form.persona.value = config.persona || '';
   form.vector_store_id.value = config.vector_store_id || '';
+  form.heygen_avatar_id.value = config.heygen_avatar_id || '';
   form.contact_url.value = config.contact_url || '';
   form.open_search_context.value = config.open_search_context || '';
   form.initial_prompt.value = config.initial_prompt || '';
@@ -727,6 +728,7 @@ function collectFormData() {
     instructions: form.instructions.value.trim() || '',
     persona: form.persona.value.trim() || null,
     vector_store_id: form.vector_store_id.value.trim() || null,
+    heygen_avatar_id: form.heygen_avatar_id.value.trim() || null,
     contact_url: form.contact_url.value.trim() || null,
     open_search_context: form.open_search_context.value.trim() || null,
     initial_prompt: form.initial_prompt.value.trim() || null,
