@@ -743,14 +743,6 @@ function collectFormData() {
   };
 }
 
-/* ── settings modal ─────────────────────────────────────── */
-function openSettings() {
-  el('settings-url').value = supabaseUrl;
-  el('settings-anon-key').value = anonKey;
-  el('settings-delete-password').value = '';
-  show('modal-settings');
-}
-
 /* ── main flow ──────────────────────────────────────────── */
 async function loadAndRender() {
   if (!supabaseUrl || !anonKey) return;
@@ -772,7 +764,6 @@ function init() {
 
 // Topbar
 el('btn-new').addEventListener('click', openNewModal);
-el('btn-settings').addEventListener('click', openSettings);
 
 // Config modal
 el('modal-close').addEventListener('click', closeConfigModal);
@@ -806,21 +797,6 @@ el('modal-delete').addEventListener('click', async () => {
   } catch (err) {
     alert(`Delete failed: ${err.message}`);
   }
-});
-
-// Settings modal
-el('settings-close').addEventListener('click', () => hide('modal-settings'));
-el('settings-cancel').addEventListener('click', () => hide('modal-settings'));
-el('modal-settings').addEventListener('click', (e) => { if (e.target === el('modal-settings')) hide('modal-settings'); });
-
-el('settings-save').addEventListener('click', () => {
-  const url = el('settings-url').value.trim();
-  const key = el('settings-anon-key').value.trim();
-  const pwd = el('settings-delete-password').value;
-  if (!url || !key) return;
-  saveConnection(url, key, pwd || adminPassword);
-  hide('modal-settings');
-  loadAndRender();
 });
 
 // Auth modal

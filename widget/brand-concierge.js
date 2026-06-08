@@ -160,125 +160,6 @@ async function loadConfig() {
   } catch { return false; }
 }
 
-async function saveConfig(data) {
-  const key = toSiteKey(data.brandName) || cfg.siteKey;
-  const domains = data.domain.split(',').map((d) => d.trim()).filter(Boolean);
-  const body = {
-    site_key: key,
-    domains,
-    brand_name: data.brandName,
-    instructions: data.instructions || '',
-    vector_store_id: data.vectorStore || null,
-    contact_url: data.contactUrl || null,
-    open_search_context: data.openSearchContext || null,
-  };
-  try {
-    await fetch(`${cfg.supabaseUrl}/functions/v1/brand-config`, {
-      method: 'POST',
-      headers: hdrs(),
-      body: JSON.stringify(body),
-    });
-    const changed = key !== cfg.siteKey;
-    cfg.siteKey = key;
-    cfg.brandName = data.brandName;
-    cfg.contactUrl = data.contactUrl || '';
-    cfg.title = `Ask the ${cfg.brandName} Brand Concierge`;
-    configLoaded = true;
-    if (changed) {
-      history.length = 0;
-      questionCount = 0;
-      clearResponseId();
-      clearRatings();
-      if (modal) { closeModal(); }
-    }
-    return true;
-  } catch { return false; }
-}
-
-/* ── config panel ─────────────────────────────────────── */
-function buildConfigPanel(onSaved) {
-  const overlay = document.createElement('div');
-  overlay.className = 'bc-overlay';
-
-  const panel = document.createElement('div');
-  panel.className = 'bc-config-panel';
-
-  const aIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="22" viewBox="0 0 24 22" fill="none"><path d="M14.2353 21.6209L12.4925 16.7699H8.11657L11.7945 7.51237L17.3741 21.6209H24L15.1548 0.379395H8.90929L0 21.6209H14.2353Z" fill="#EB1000"></path></svg>';
-
-  panel.innerHTML = `
-    <div class="bc-config-header">
-      <span class="bc-config-icon">${aIcon}</span>
-      <h3 class="bc-config-title">Configuration</h3>
-    </div>
-    <label class="bc-config-label">Brand Name:
-      <input type="text" class="bcc-brand" placeholder="My Brand" value="${cfg.brandName || ''}">
-    </label>
-    <label class="bc-config-label">Domain:
-      <input type="text" class="bcc-domain" placeholder="example.com">
-    </label>
-    <label class="bc-config-label">Vector Store:
-      <input type="text" class="bcc-vector" placeholder="vs_abc123 (optional)">
-    </label>
-    <label class="bc-config-label">Instructions:
-      <textarea class="bcc-instructions" rows="4" placeholder="Custom system prompt (optional)"></textarea>
-    </label>
-    <label class="bc-config-label">Contact URL:
-      <input type="text" class="bcc-contact" placeholder="https://... (optional)">
-    </label>
-    <label class="bc-config-label">Web search context:
-      <input type="text" class="bcc-open-search" placeholder="e.g. renting a car from Avis (optional)">
-    </label>
-    <div class="bc-config-actions">
-      <button type="button" class="bcc-cancel">Cancel</button>
-      <button type="button" class="bcc-save">Save</button>
-    </div>`;
-
-  // Pre-fill from existing config if available
-  if (cfg.siteKey && configLoaded) {
-    (async () => {
-      try {
-        const r = await fetch(
-          `${cfg.supabaseUrl}/functions/v1/brand-config?site_key=${cfg.siteKey}`,
-          { headers: hdrs() },
-        );
-        const c = await r.json();
-        if (!c.error) {
-          panel.querySelector('.bcc-brand').value = c.brand_name || '';
-          panel.querySelector('.bcc-domain').value = (c.domains || []).join(', ');
-          panel.querySelector('.bcc-vector').value = c.vector_store_id || '';
-          panel.querySelector('.bcc-instructions').value = c.instructions || '';
-          panel.querySelector('.bcc-contact').value = c.contact_url || '';
-          panel.querySelector('.bcc-open-search').value = c.open_search_context || '';
-        }
-      } catch { /* ignore */ }
-    })();
-  }
-
-  panel.querySelector('.bcc-cancel').addEventListener('click', () => overlay.remove());
-
-  panel.querySelector('.bcc-save').addEventListener('click', async () => {
-    const data = {
-      brandName: panel.querySelector('.bcc-brand').value.trim(),
-      domain: panel.querySelector('.bcc-domain').value.trim(),
-      vectorStore: panel.querySelector('.bcc-vector').value.trim(),
-      instructions: panel.querySelector('.bcc-instructions').value.trim(),
-      contactUrl: panel.querySelector('.bcc-contact').value.trim(),
-      openSearchContext: panel.querySelector('.bcc-open-search').value.trim(),
-    };
-    if (!data.brandName || !data.domain) return;
-    const ok = await saveConfig(data);
-    if (ok) {
-      overlay.remove();
-      if (onSaved) onSaved();
-    }
-  });
-
-  overlay.append(panel);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-  document.body.append(overlay);
-  return overlay;
-}
-
 /* ── messages ─────────────────────────────────────────── */
 function addMessage(container, text, role, citations, suggestions, recommendations, bookingUrl, messageIdx) {
   container.closest('.bc-dialog')?.classList.add('has-messages');
@@ -809,10 +690,6 @@ export function init(options) {
   }
 }
 
-export function openConfig(onSaved) {
-  buildConfigPanel(onSaved);
-}
-
 export function hasConversation() {
   return history.length > 0;
 }
@@ -838,14 +715,7 @@ export default async function open(query) {
 
   // Try to load config if not yet loaded
   if (!configLoaded && cfg.siteKey) {
-    const ok = await loadConfig();
-    if (!ok && !cfg.brandName) {
-      buildConfigPanel(() => buildModal(query));
-      return;
-    }
-  } else if (!configLoaded && !cfg.siteKey && !cfg.brandName) {
-    buildConfigPanel(() => buildModal(query));
-    return;
+    await loadConfig();
   }
 
   buildModal(query);
