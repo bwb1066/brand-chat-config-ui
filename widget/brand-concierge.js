@@ -372,8 +372,10 @@ async function heygenPost(action, body) {
 async function startAvatar(videoEl, toggleBtn) {
   try {
     toggleBtn.disabled = true;
-    const { session_id, sdp, ice_servers } = await heygenPost('start_session', { avatar_id: heygenAvatarId });
-    if (!session_id) throw new Error('No session');
+    const result = await heygenPost('start_session', { avatar_id: heygenAvatarId });
+    if (result.error) throw new Error(`HeyGen: ${result.error}`);
+    const { session_id, sdp, ice_servers } = result;
+    if (!session_id) throw new Error('No session_id in response');
 
     const pc = new RTCPeerConnection({ iceServers: ice_servers });
     heygenPeerConn = pc;
@@ -545,6 +547,7 @@ function buildModal(initialQuery) {
         startAvatar(videoEl, avatarToggleBtn);
       }
     });
+    startAvatar(videoEl, avatarToggleBtn);
   }
 
   document.body.append(overlay);
