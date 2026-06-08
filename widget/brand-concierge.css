@@ -114,6 +114,15 @@
   overflow-wrap: break-word;
 }
 
+.bc-message--system {
+  align-self: center;
+  font-size: 12px;
+  color: #888;
+  max-width: 100%;
+  text-align: center;
+  padding: 4px 0;
+}
+
 .bc-user {
   align-self: flex-end;
   background: #f5f5f5;

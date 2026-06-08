@@ -426,11 +426,21 @@ async function startAvatar(videoEl, toggleBtn) {
     videoEl.classList.remove('bc-avatar-hidden');
     videoEl.closest('.bc-messages-wrap').querySelector('.bc-messages').classList.add('bc-avatar-hidden');
   } catch (e) {
-    console.error('[avatar] start failed', e);
+    const msg = e?.message || String(e);
+    console.error('[avatar] start failed:', msg);
     toggleBtn.disabled = false;
     heygenEnabled = false;
     heygenSessionId = null;
     heygenRoom = null;
+    // Fall back to text mode — add a subtle notice to the chat
+    const messagesEl = videoEl.closest('.bc-messages-wrap')?.querySelector('.bc-messages');
+    if (messagesEl) {
+      const notice = document.createElement('div');
+      notice.className = 'bc-message bc-message--system';
+      notice.textContent = `Avatar unavailable: ${msg}`;
+      messagesEl.appendChild(notice);
+      videoEl.closest('.bc-dialog').classList.add('has-messages');
+    }
   }
 }
 
