@@ -390,6 +390,7 @@ function loadLiveKit() {
 }
 
 async function startAvatar(videoEl, toggleBtn) {
+  if (!heygenAvatarId) return;
   try {
     toggleBtn.disabled = true;
     const result = await heygenPost('start_session', { avatar_id: heygenAvatarId });
