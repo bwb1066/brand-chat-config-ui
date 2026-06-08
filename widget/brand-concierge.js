@@ -56,7 +56,7 @@ let ratings = {};
 let heygenAvatarId = null;
 let heygenEnabled = false;
 let heygenSessionId = null;
-let heygenPeerConn = null;
+let heygenRoom = null;
 let heygenVideoEl = null;
 
 /* ── helpers ──────────────────────────────────────────── */
@@ -346,8 +346,17 @@ async function sendMessage(messagesContainer, text) {
     reply = reply.replace(/【[^】]*】/g, '');
     if (shouldShowContact(text)) suggestions.push('__CONTACT__');
 
-    if (heygenEnabled && heygenSessionId) {
-      heygenPost('speak', { session_id: heygenSessionId, text: reply }).catch(console.error);
+    if (heygenEnabled && heygenRoom) {
+      const evt = JSON.stringify({
+        event_id: crypto.randomUUID(),
+        event_type: 'avatar.speak_text',
+        session_id: heygenSessionId,
+        text: reply,
+      });
+      heygenRoom.localParticipant.publishData(
+        new TextEncoder().encode(evt),
+        { topic: 'agent-control' }
+      ).catch(console.error);
     } else {
       addMessage(messagesContainer, reply, 'assistant', citations, suggestions, recommendations, bookingUrl, history.length);
     }
@@ -369,27 +378,40 @@ async function heygenPost(action, body) {
   return r.json();
 }
 
+function loadLiveKit() {
+  if (window.LivekitClient) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load LiveKit SDK'));
+    document.head.appendChild(s);
+  });
+}
+
 async function startAvatar(videoEl, toggleBtn) {
   try {
     toggleBtn.disabled = true;
     const result = await heygenPost('start_session', { avatar_id: heygenAvatarId });
-    if (result.error) throw new Error(`HeyGen: ${result.error}`);
-    const { session_id, sdp, ice_servers } = result;
-    if (!session_id) throw new Error('No session_id in response');
+    if (result.error) throw new Error(`LiveAvatar: ${result.error}`);
+    const { session_id, livekit_url, livekit_client_token } = result;
+    if (!session_id || !livekit_url) throw new Error('No session data in response');
 
-    const pc = new RTCPeerConnection({ iceServers: ice_servers });
-    heygenPeerConn = pc;
+    await loadLiveKit();
+    const { Room, RoomEvent } = window.LivekitClient;
+
+    const room = new Room();
+    heygenRoom = room;
     heygenSessionId = session_id;
 
-    pc.ontrack = (e) => {
-      if (e.streams?.[0]) videoEl.srcObject = e.streams[0];
-    };
+    room.on(RoomEvent.TrackSubscribed, (track) => {
+      if (track.kind === 'video') track.attach(videoEl);
+    });
+    room.on(RoomEvent.TrackUnsubscribed, (track) => {
+      if (track.kind === 'video') track.detach(videoEl);
+    });
 
-    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    await heygenPost('connect_session', { session_id, sdp: answer });
+    await room.connect(livekit_url, livekit_client_token);
 
     heygenEnabled = true;
     toggleBtn.disabled = false;
@@ -403,7 +425,7 @@ async function startAvatar(videoEl, toggleBtn) {
     toggleBtn.disabled = false;
     heygenEnabled = false;
     heygenSessionId = null;
-    heygenPeerConn = null;
+    heygenRoom = null;
   }
 }
 
@@ -411,7 +433,7 @@ async function stopAvatar(videoEl, toggleBtn) {
   if (heygenSessionId) {
     heygenPost('stop_session', { session_id: heygenSessionId }).catch(() => {});
   }
-  if (heygenPeerConn) { heygenPeerConn.close(); heygenPeerConn = null; }
+  if (heygenRoom) { heygenRoom.disconnect(); heygenRoom = null; }
   heygenSessionId = null;
   heygenEnabled = false;
   videoEl.srcObject = null;
@@ -426,7 +448,7 @@ async function stopAvatar(videoEl, toggleBtn) {
 function closeModal() {
   if (heygenSessionId) {
     heygenPost('stop_session', { session_id: heygenSessionId }).catch(() => {});
-    if (heygenPeerConn) { heygenPeerConn.close(); heygenPeerConn = null; }
+    if (heygenRoom) { heygenRoom.disconnect(); heygenRoom = null; }
     heygenSessionId = null;
     heygenEnabled = false;
   }
