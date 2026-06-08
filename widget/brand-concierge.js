@@ -405,10 +405,15 @@ async function startAvatar(videoEl, toggleBtn) {
     heygenSessionId = session_id;
 
     room.on(RoomEvent.TrackSubscribed, (track) => {
-      if (track.kind === 'video') track.attach(videoEl);
+      if (track.kind === 'video') {
+        track.attach(videoEl);
+      } else if (track.kind === 'audio') {
+        const audioEl = track.attach();
+        document.body.appendChild(audioEl);
+      }
     });
     room.on(RoomEvent.TrackUnsubscribed, (track) => {
-      if (track.kind === 'video') track.detach(videoEl);
+      track.detach();
     });
 
     await room.connect(livekit_url, livekit_client_token);
