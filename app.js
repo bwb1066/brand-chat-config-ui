@@ -93,7 +93,8 @@ function writeHdrs() {
   return {
     'Content-Type': 'application/json',
     apikey: anonKey,
-    Authorization: `Bearer ${adminPassword}`,
+    Authorization: `Bearer ${anonKey}`,
+    'x-admin-token': adminPassword,
   };
 }
 
