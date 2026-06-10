@@ -53,6 +53,7 @@ const history = [];
 let ratings = {};
 
 // Avatar state
+let triggerObserver = null;
 let heygenAvatarId = null;
 let heygenEnabled = false;
 let heygenSessionId = null;
@@ -695,6 +696,14 @@ function buildTrigger() {
 
   btn.addEventListener('click', () => open());
   document.body.appendChild(btn);
+
+  // Re-inject if an SPA (e.g. React hydration) removes the trigger
+  if (!triggerObserver) {
+    triggerObserver = new MutationObserver(() => {
+      if (!document.getElementById('bc-trigger')) buildTrigger();
+    });
+  }
+  triggerObserver.observe(document.body, { childList: true });
 }
 
 /* ── public API ───────────────────────────────────────── */
