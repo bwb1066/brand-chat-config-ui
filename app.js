@@ -1,6 +1,6 @@
 /* ── version ─────────────────────────────────────────────── */
-const APP_VERSION = '2026.06.11.0000';
-const APP_COMMIT = '0000000';
+const APP_VERSION = 'local';
+const APP_COMMIT = 'local';
 (async function initVersionCheck() {
   const versionEl = document.getElementById('app-version');
   if (versionEl) {
@@ -25,7 +25,6 @@ const APP_COMMIT = '0000000';
     document.body.prepend(banner);
   }
 
-  checkForUpdates();
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkForUpdates();
   });

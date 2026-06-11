@@ -27,8 +27,8 @@ jobs:
         run: |
           BUILD_VERSION=$(date -u +%Y.%m.%d.%H%M)
           GIT_SHA=$(git rev-parse --short HEAD)
-          sed -i "s/const APP_VERSION = '[^']*'/const APP_VERSION = '${BUILD_VERSION}'/" app.js
-          sed -i "s/const APP_COMMIT = '[^']*'/const APP_COMMIT = '${GIT_SHA}'/" app.js
+          sed -i "s/const APP_VERSION = 'local'/const APP_VERSION = '${BUILD_VERSION}'/" app.js
+          sed -i "s/const APP_COMMIT = 'local'/const APP_COMMIT = '${GIT_SHA}'/" app.js
           echo "APP_VERSION=${BUILD_VERSION} (${GIT_SHA})" >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-pages-artifact@v3
         with:
