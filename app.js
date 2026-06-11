@@ -1,14 +1,12 @@
 /* ── version ─────────────────────────────────────────────── */
 const APP_VERSION = '2026.06.11.0000';
-const GITHUB_RAW_APP = 'https://raw.githubusercontent.com/bwb1066/brand-chat-config-ui/main/app.js';
-
 (async function initVersionCheck() {
   const versionEl = document.getElementById('app-version');
   if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
 
-  async function checkGitHub() {
+  async function checkForUpdates() {
     try {
-      const r = await fetch(GITHUB_RAW_APP, { cache: 'no-store' });
+      const r = await fetch('app.js', { cache: 'no-store' });
       const text = await r.text();
       const match = text.match(/^const APP_VERSION = ['"]([^'"]+)['"]/m);
       if (match && match[1] !== APP_VERSION) showUpdateBanner(match[1]);
@@ -24,9 +22,9 @@ const GITHUB_RAW_APP = 'https://raw.githubusercontent.com/bwb1066/brand-chat-con
     document.body.prepend(banner);
   }
 
-  checkGitHub();
+  checkForUpdates();
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') checkGitHub();
+    if (document.visibilityState === 'visible') checkForUpdates();
   });
 })();
 
