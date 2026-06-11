@@ -1,10 +1,18 @@
 /* ── version ─────────────────────────────────────────────── */
 const APP_VERSION = 'local';
+const APP_TAG = 'local';
 const APP_COMMIT = 'local';
+const GITHUB_REPO = 'https://github.com/bwb1066/brand-chat-config-ui';
 (async function initVersionCheck() {
   const versionEl = document.getElementById('app-version');
   if (versionEl) {
-    versionEl.innerHTML = `v${APP_VERSION} · <a href="https://github.com/bwb1066/brand-chat-config-ui/commit/${APP_COMMIT}" target="_blank" rel="noopener">${APP_COMMIT}</a>`;
+    const tagHtml = APP_TAG !== 'local'
+      ? `<a href="${GITHUB_REPO}/releases/tag/${APP_TAG}" target="_blank" rel="noopener">${APP_TAG}</a>`
+      : 'local';
+    const commitHtml = APP_COMMIT !== 'local'
+      ? `<a href="${GITHUB_REPO}/commit/${APP_COMMIT}" target="_blank" rel="noopener">${APP_COMMIT}</a>`
+      : '';
+    versionEl.innerHTML = [tagHtml, APP_VERSION !== 'local' ? APP_VERSION : '', commitHtml].filter(Boolean).join(' · ');
   }
 
   async function checkForUpdates() {

@@ -26,11 +26,14 @@ jobs:
       - name: Stamp build version
         run: |
           GIT_SHA=$(git rev-parse --short HEAD)
-          GIT_TAG=$(git describe --tags --always 2>/dev/null || echo "${GIT_SHA}")
+          GIT_TAG=$(git tag --points-at HEAD | head -1)
+          GIT_DESCRIBE=$(git describe --tags --always 2>/dev/null || echo "${GIT_SHA}")
           BUILD_TIME=$(date -u +%Y.%m.%d.%H%M)
-          sed -i "s/const APP_VERSION = 'local'/const APP_VERSION = '${GIT_TAG} · ${BUILD_TIME}'/" app.js
+          TAG_VALUE=${GIT_TAG:-${GIT_DESCRIBE}}
+          sed -i "s/const APP_VERSION = 'local'/const APP_VERSION = '${BUILD_TIME}'/" app.js
+          sed -i "s/const APP_TAG = 'local'/const APP_TAG = '${TAG_VALUE}'/" app.js
           sed -i "s/const APP_COMMIT = 'local'/const APP_COMMIT = '${GIT_SHA}'/" app.js
-          echo "APP_VERSION=${GIT_TAG} · ${BUILD_TIME} (${GIT_SHA})" >> $GITHUB_STEP_SUMMARY
+          echo "APP_VERSION=${TAG_VALUE} · ${BUILD_TIME} (${GIT_SHA})" >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
