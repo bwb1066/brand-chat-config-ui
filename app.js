@@ -1,8 +1,11 @@
 /* ── version ─────────────────────────────────────────────── */
 const APP_VERSION = '2026.06.11.0000';
+const APP_COMMIT = '0000000';
 (async function initVersionCheck() {
   const versionEl = document.getElementById('app-version');
-  if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
+  if (versionEl) {
+    versionEl.innerHTML = `v${APP_VERSION} · <a href="https://github.com/bwb1066/brand-chat-config-ui/commit/${APP_COMMIT}" target="_blank" rel="noopener">${APP_COMMIT}</a>`;
+  }
 
   async function checkForUpdates() {
     try {

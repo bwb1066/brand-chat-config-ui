@@ -120,6 +120,11 @@ body {
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+.topbar-version a {
+  color: rgba(255,255,255,0.45);
+  text-decoration: none;
+}
+.topbar-version a:hover { color: rgba(255,255,255,0.75); }
 
 /* ── buttons ────────────────────────────────────────────── */
 .btn-primary {
