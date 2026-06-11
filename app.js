@@ -1,40 +1,39 @@
 /* ── version ─────────────────────────────────────────────── */
-const APP_VERSION = 'local';
-const APP_TAG = 'local';
-const APP_COMMIT = 'local';
 const GITHUB_REPO = 'https://github.com/bwb1066/brand-chat-config-ui';
 (async function initVersionCheck() {
   const versionEl = document.getElementById('app-version');
-  if (versionEl) {
-    const tagHtml = APP_TAG !== 'local'
-      ? `<a href="${GITHUB_REPO}/releases/tag/${APP_TAG}" target="_blank" rel="noopener">${APP_TAG}</a>`
-      : 'local';
-    const commitHtml = APP_COMMIT !== 'local'
-      ? `<a href="${GITHUB_REPO}/commit/${APP_COMMIT}" target="_blank" rel="noopener">${APP_COMMIT}</a>`
-      : '';
-    versionEl.innerHTML = [tagHtml, APP_VERSION !== 'local' ? APP_VERSION : '', commitHtml].filter(Boolean).join(' · ');
-  }
 
-  async function checkForUpdates() {
+  async function fetchVersion() {
     try {
-      const r = await fetch('app.js', { cache: 'no-store' });
-      const text = await r.text();
-      const match = text.match(/^const APP_VERSION = ['"]([^'"]+)['"]/m);
-      if (match && match[1] !== APP_VERSION) showUpdateBanner(match[1]);
-    } catch {}
+      const r = await fetch(`version.json?${Date.now()}`);
+      return await r.json();
+    } catch { return null; }
   }
 
-  function showUpdateBanner(latestVersion) {
+  function renderVersion(v, el) {
+    if (!v || !el) return;
+    const isLocal = v.tag === 'local';
+    const tagHtml = isLocal ? 'local' : `<a href="${GITHUB_REPO}/releases/tag/${v.tag}" target="_blank" rel="noopener">${v.tag}</a>`;
+    const commitHtml = isLocal ? '' : `<a href="${GITHUB_REPO}/commit/${v.commit}" target="_blank" rel="noopener">${v.commit}</a>`;
+    el.innerHTML = [tagHtml, isLocal ? '' : v.time, commitHtml].filter(Boolean).join(' · ');
+  }
+
+  function showUpdateBanner(v) {
     if (document.getElementById('update-banner')) return;
     const banner = document.createElement('div');
     banner.id = 'update-banner';
     banner.className = 'update-banner';
-    banner.innerHTML = `Version ${latestVersion} is available. <button onclick="location.reload()">Reload now</button>`;
+    banner.innerHTML = `Version ${v.tag} · ${v.time} is available. <button onclick="location.reload()">Reload now</button>`;
     document.body.prepend(banner);
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') checkForUpdates();
+  const current = await fetchVersion();
+  renderVersion(current, versionEl);
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+    const latest = await fetchVersion();
+    if (current && latest && latest.time !== current.time) showUpdateBanner(latest);
   });
 })();
 
