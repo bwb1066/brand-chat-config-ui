@@ -1,28 +1,33 @@
-/* ── version check ──────────────────────────────────────── */
+/* ── version ─────────────────────────────────────────────── */
+const APP_VERSION = '2026.06.11.0000';
+const GITHUB_RAW_APP = 'https://raw.githubusercontent.com/bwb1066/brand-chat-config-ui/main/app.js';
+
 (async function initVersionCheck() {
-  let baseline = null;
-  try {
-    const r = await fetch('app.js', { method: 'HEAD', cache: 'no-store' });
-    baseline = r.headers.get('etag') || r.headers.get('last-modified');
-  } catch {}
+  const versionEl = document.getElementById('app-version');
+  if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
 
-  document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState !== 'visible' || !baseline) return;
+  async function checkGitHub() {
     try {
-      const r = await fetch('app.js', { method: 'HEAD', cache: 'no-store' });
-      const current = r.headers.get('etag') || r.headers.get('last-modified');
-      if (current && current !== baseline) showUpdateBanner();
+      const r = await fetch(GITHUB_RAW_APP, { cache: 'no-store' });
+      const text = await r.text();
+      const match = text.match(/^const APP_VERSION = ['"]([^'"]+)['"]/m);
+      if (match && match[1] !== APP_VERSION) showUpdateBanner(match[1]);
     } catch {}
-  });
+  }
 
-  function showUpdateBanner() {
+  function showUpdateBanner(latestVersion) {
     if (document.getElementById('update-banner')) return;
     const banner = document.createElement('div');
     banner.id = 'update-banner';
     banner.className = 'update-banner';
-    banner.innerHTML = 'A new version is available. <button onclick="location.reload()">Reload now</button>';
+    banner.innerHTML = `Version ${latestVersion} is available. <button onclick="location.reload()">Reload now</button>`;
     document.body.prepend(banner);
   }
+
+  checkGitHub();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkGitHub();
+  });
 })();
 
 /* ── connection state ───────────────────────────────────── */
@@ -215,8 +220,9 @@ function tmMatchLines(config) {
   }).join('\n');
 }
 
-function tmHeader(config, matchLines, tmVersion, grants) {
+function tmHeader(config, matchLines, tmVersion, grants, connects = []) {
   const grantLines = grants.map((g) => `// @grant        ${g}`).join('\n');
+  const connectLines = connects.map((c) => `// @connect      ${c}`).join('\n');
   return `// ==UserScript==
 // @name         Brand Chat – ${config.brand_name}
 // @namespace    https://github.com/bwb1066/brand-chat-config-ui
@@ -224,7 +230,7 @@ function tmHeader(config, matchLines, tmVersion, grants) {
 // @description  ${config.brand_name} AI Concierge widget
 // @author       Brand Chat Config
 ${matchLines}
-${grantLines}
+${grantLines}${connectLines ? '\n' + connectLines : ''}
 // @run-at       document-idle
 // ==/UserScript==`;
 }
@@ -300,7 +306,7 @@ async function tmInlineTemplate(config, matchLines, tmVersion, scriptVersion) {
     noCssAutoLoad: true,
   });
 
-  const text = `${tmHeader(config, matchLines, tmVersion, ['GM_addElement'])}
+  const text = `${tmHeader(config, matchLines, tmVersion, ['GM_addElement', 'GM_xmlhttpRequest'], ['*.supabase.co'])}
 
 (function () {
   'use strict';
@@ -315,16 +321,61 @@ async function tmInlineTemplate(config, matchLines, tmVersion, scriptVersion) {
     console.error('[BrandChat] CSS injection failed:', e);
   }
 
+  // Route Supabase API calls through GM_xmlhttpRequest so they bypass the page's
+  // connect-src CSP. All other fetch calls pass through normally.
+  var _supabaseBase = BC_CFG.supabaseUrl;
   var _nativeFetch = window.fetch.bind(window);
   window.fetch = function bcFetch(url, opts) {
+    var urlStr = typeof url === 'string' ? url : (url && url.toString ? url.toString() : '');
     var method = (opts && opts.method) || 'GET';
-    console.log('[BrandChat] fetch ->', method, typeof url === 'string' ? url.replace(/eyJ[^&"]+/g, '<JWT>') : url);
+    var logUrl = urlStr.replace(/eyJ[^&"]+/g, '<JWT>');
+    if (_supabaseBase && urlStr.startsWith(_supabaseBase)) {
+      console.log('[BrandChat] GM_xmlhttpRequest ->', method, logUrl);
+      return new Promise(function (resolve, reject) {
+        var headers = {};
+        if (opts && opts.headers) {
+          if (typeof opts.headers.entries === 'function') {
+            for (var pair of opts.headers.entries()) headers[pair[0]] = pair[1];
+          } else {
+            Object.assign(headers, opts.headers);
+          }
+        }
+        GM_xmlhttpRequest({
+          method: method,
+          url: urlStr,
+          headers: headers,
+          data: (opts && opts.body) || null,
+          onload: function (r) {
+            console.log('[BrandChat] GM_xmlhttpRequest <-', r.status, logUrl);
+            var text = r.responseText;
+            resolve({
+              ok: r.status >= 200 && r.status < 300,
+              status: r.status,
+              statusText: r.statusText || '',
+              headers: new Headers({}),
+              text: function () { return Promise.resolve(text); },
+              json: function () {
+                try { return Promise.resolve(JSON.parse(text)); }
+                catch (e) { return Promise.reject(e); }
+              },
+              clone: function () { return this; },
+            });
+          },
+          onerror: function (e) {
+            console.error('[BrandChat] GM_xmlhttpRequest error', logUrl, e);
+            reject(new TypeError('Network request failed'));
+          },
+          ontimeout: function () { reject(new TypeError('Network request timed out')); },
+        });
+      });
+    }
+    console.log('[BrandChat] fetch ->', method, logUrl);
     return _nativeFetch(url, opts).then(function (r) {
-      console.log('[BrandChat] fetch <-', r.status, typeof url === 'string' ? url.replace(/eyJ[^&"]+/g, '<JWT>') : url);
-      if (!r.ok) console.warn('[BrandChat] fetch non-OK', r.status, url);
+      console.log('[BrandChat] fetch <-', r.status, logUrl);
+      if (!r.ok) console.warn('[BrandChat] fetch non-OK', r.status, logUrl);
       return r;
     }, function (err) {
-      console.error('[BrandChat] fetch error', url, err);
+      console.error('[BrandChat] fetch error', logUrl, err);
       throw err;
     });
   };

@@ -23,6 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Stamp build version
+        run: |
+          BUILD_VERSION=$(date -u +%Y.%m.%d.%H%M)
+          sed -i "s/const APP_VERSION = '[^']*'/const APP_VERSION = '${BUILD_VERSION}'/" app.js
+          echo "APP_VERSION=${BUILD_VERSION}" >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
