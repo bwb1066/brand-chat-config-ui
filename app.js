@@ -306,7 +306,7 @@ async function tmInlineTemplate(config, matchLines, tmVersion, scriptVersion) {
     noCssAutoLoad: true,
   });
 
-  const text = `${tmHeader(config, matchLines, tmVersion, ['GM_addElement', 'GM_xmlhttpRequest'], ['*.supabase.co'])}
+  const text = `${tmHeader(config, matchLines, tmVersion, ['GM_addElement', 'GM_xmlhttpRequest'], ['supabase.co'])}
 
 (function () {
   'use strict';
