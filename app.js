@@ -1,39 +1,43 @@
 /* ── version ─────────────────────────────────────────────── */
 const GITHUB_REPO = 'https://github.com/bwb1066/brand-chat-config-ui';
+const GITHUB_API  = 'https://api.github.com/repos/bwb1066/brand-chat-config-ui/commits/main';
+
 (async function initVersionCheck() {
   const versionEl = document.getElementById('app-version');
 
-  async function fetchVersion() {
+  async function fetchLatestCommit() {
     try {
-      const r = await fetch(`version.json?${Date.now()}`);
-      return await r.json();
+      const r = await fetch(GITHUB_API, { cache: 'no-store' });
+      if (!r.ok) return null;
+      const data = await r.json();
+      return {
+        sha:  data.sha.slice(0, 7),
+        date: data.commit.committer.date.slice(0, 16).replace('T', ' '),
+      };
     } catch { return null; }
   }
 
-  function renderVersion(v, el) {
-    if (!v || !el) return;
-    const isLocal = v.tag === 'local';
-    const tagHtml = isLocal ? 'local' : `<a href="${GITHUB_REPO}/releases/tag/${v.tag}" target="_blank" rel="noopener">${v.tag}</a>`;
-    const commitHtml = isLocal ? '' : `<a href="${GITHUB_REPO}/commit/${v.commit}" target="_blank" rel="noopener">${v.commit}</a>`;
-    el.innerHTML = [tagHtml, isLocal ? '' : v.time, commitHtml].filter(Boolean).join(' · ');
+  function renderVersion(commit, el) {
+    if (!commit || !el) return;
+    el.innerHTML = `<a href="${GITHUB_REPO}/commit/${commit.sha}" target="_blank" rel="noopener">${commit.sha}</a> · ${commit.date}`;
   }
 
-  function showUpdateBanner(v) {
+  function showUpdateBanner(sha) {
     if (document.getElementById('update-banner')) return;
     const banner = document.createElement('div');
     banner.id = 'update-banner';
     banner.className = 'update-banner';
-    banner.innerHTML = `Version ${v.tag} · ${v.time} is available. <button onclick="location.reload()">Reload now</button>`;
+    banner.innerHTML = `New version available (${sha}). <button onclick="location.reload()">Reload now</button>`;
     document.body.prepend(banner);
   }
 
-  const current = await fetchVersion();
+  const current = await fetchLatestCommit();
   renderVersion(current, versionEl);
 
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
-    const latest = await fetchVersion();
-    if (current && latest && latest.time !== current.time) showUpdateBanner(latest);
+    const latest = await fetchLatestCommit();
+    if (current && latest && latest.sha !== current.sha) showUpdateBanner(latest.sha);
   });
 })();
 
