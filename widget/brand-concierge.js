@@ -637,8 +637,6 @@ async function autoSaveConfig() {
 }
 
 /* ── floating trigger button ──────────────────────────── */
-const ADOBE_A = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="18" viewBox="0 0 24 22" fill="none"><path d="M14.2353 21.6209L12.4925 16.7699H8.11657L11.7945 7.51237L17.3741 21.6209H24L15.1548 0.379395H8.90929L0 21.6209H14.2353Z" fill="#EB1000"/></svg>';
-
 function buildTrigger() {
   if (document.getElementById('bc-trigger')) return;
   const btn = document.createElement('button');
@@ -647,7 +645,8 @@ function buildTrigger() {
   btn.setAttribute('aria-label', cfg.triggerLabel || `Chat with ${cfg.brandName || 'us'}`);
 
   if (cfg.triggerStyle === 'tab') {
-    btn.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">${ADOBE_A}${cfg.triggerLabel ? `<span style="font-size:11px;font-weight:600;letter-spacing:0.03em;color:#111">${cfg.triggerLabel}</span>` : ''}</div>`;
+    const logoImg = `<img src="${cfg.widgetBase}logo1.png" alt="" width="36" height="36" style="display:block">`;
+    btn.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">${logoImg}${cfg.triggerLabel ? `<span style="font-size:11px;font-weight:600;letter-spacing:0.03em;color:#111">${cfg.triggerLabel}</span>` : ''}</div>`;
     Object.assign(btn.style, {
       position: 'fixed',
       top: '15%',
