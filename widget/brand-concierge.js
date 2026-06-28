@@ -162,7 +162,7 @@ async function loadConfig() {
 }
 
 /* ── messages ─────────────────────────────────────────── */
-function addMessage(container, text, role, citations, suggestions, recommendations, bookingUrl, messageIdx) {
+function addMessage(container, text, role, citations, suggestions, recommendations, bookingUrl, messageIdx, resources) {
   container.closest('.bc-dialog')?.classList.add('has-messages');
   const msg = document.createElement('div');
   msg.className = `bc-message bc-${role}`;
@@ -225,6 +225,28 @@ function addMessage(container, text, role, citations, suggestions, recommendatio
         recommendationWrap.append(card);
       });
       msg.append(recommendationWrap);
+    }
+
+    if (resources?.length) {
+      const resourceWrap = document.createElement('div');
+      resourceWrap.className = 'bc-resources';
+      resources.forEach((r) => {
+        const card = document.createElement('a');
+        card.href = r.url;
+        card.target = '_blank';
+        card.rel = 'noopener';
+        card.className = 'bc-resource-card';
+        let html = '';
+        if (r.image) html += `<img src="${r.image}" alt="" class="bc-resource-img">`;
+        html += '<div class="bc-resource-body">';
+        html += `<span class="bc-resource-title">${r.title}</span>`;
+        if (r.teaser) html += `<span class="bc-resource-teaser">${r.teaser}</span>`;
+        html += '<span class="bc-resource-cta">Read article →</span>';
+        html += '</div>';
+        card.innerHTML = html;
+        resourceWrap.append(card);
+      });
+      msg.append(resourceWrap);
     }
 
     if (suggestions?.length) {
@@ -333,6 +355,7 @@ async function sendMessage(messagesContainer, text) {
     const citations = data.citations || [];
     const suggestions = data.suggestions || [];
     const recommendations = data.recommendations || [];
+    const resources = data.resources || [];
     const bookingUrl = data.booking_url || null;
     if (data.contactUrl) cfg.contactUrl = data.contactUrl;
     if (data.thread_reset) {
@@ -359,9 +382,9 @@ async function sendMessage(messagesContainer, text) {
         { topic: 'agent-control' }
       ).catch(console.error);
     } else {
-      addMessage(messagesContainer, reply, 'assistant', citations, suggestions, recommendations, bookingUrl, history.length);
+      addMessage(messagesContainer, reply, 'assistant', citations, suggestions, recommendations, bookingUrl, history.length, resources);
     }
-    history.push({ role: 'assistant', content: reply, citations, suggestions, recommendations, bookingUrl });
+    history.push({ role: 'assistant', content: reply, citations, suggestions, recommendations, bookingUrl, resources });
   } catch (err) {
     console.error('[brand-concierge] fetch error:', err);
     thinking.remove();
@@ -593,7 +616,7 @@ function buildModal(initialQuery) {
   document.body.style.overflow = 'hidden';
   modal = overlay;
 
-  history.forEach((m, idx) => addMessage(messages, m.content, m.role, m.citations, m.suggestions, m.recommendations, m.bookingUrl, idx));
+  history.forEach((m, idx) => addMessage(messages, m.content, m.role, m.citations, m.suggestions, m.recommendations, m.bookingUrl, idx, m.resources));
   if (initialQuery) sendMessage(messages, initialQuery);
 }
 
