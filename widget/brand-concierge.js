@@ -371,16 +371,7 @@ async function sendMessage(messagesContainer, text) {
     if (shouldShowContact(text)) suggestions.push('__CONTACT__');
 
     if (heygenEnabled && heygenRoom) {
-      const evt = JSON.stringify({
-        event_id: crypto.randomUUID(),
-        event_type: 'avatar.speak_text',
-        session_id: heygenSessionId,
-        text: reply,
-      });
-      heygenRoom.localParticipant.publishData(
-        new TextEncoder().encode(evt),
-        { topic: 'agent-control' }
-      ).catch(console.error);
+      heygenSpeak(reply);
     } else {
       addMessage(messagesContainer, reply, 'assistant', citations, suggestions, recommendations, bookingUrl, history.length, resources);
     }
@@ -400,6 +391,21 @@ async function heygenPost(action, body) {
     body: JSON.stringify({ action, ...body }),
   });
   return r.json();
+}
+
+// Send text for the avatar to speak, over the LiveKit agent-control data channel.
+function heygenSpeak(text) {
+  if (!heygenRoom || !text) return;
+  const evt = JSON.stringify({
+    event_id: crypto.randomUUID(),
+    event_type: 'avatar.speak_text',
+    session_id: heygenSessionId,
+    text,
+  });
+  heygenRoom.localParticipant.publishData(
+    new TextEncoder().encode(evt),
+    { reliable: true, topic: 'agent-control' },
+  ).catch(console.error);
 }
 
 function loadLiveKit() {
@@ -429,9 +435,29 @@ async function startAvatar(videoEl, toggleBtn) {
     heygenRoom = room;
     heygenSessionId = session_id;
 
+    // Prime the avatar with a greeting the moment it's live. We wait until the
+    // avatar video is subscribed AND the LiveAvatar agent participant has joined
+    // (otherwise the speak command has no listener and is silently dropped).
+    const primeName = cfg.chatTitle || `${cfg.brandName ? cfg.brandName + ' ' : ''}Brand Concierge`;
+    const primeText = `Hi! I'm ${primeName}. You can type a question below to get started.`;
+    let primed = false;
+    let videoLive = false;
+    const doPrime = () => { if (!primed) { primed = true; heygenSpeak(primeText); } };
+    const tryPrime = () => {
+      if (primed || !videoLive) return;
+      const agentReady = [...room.remoteParticipants.values()]
+        .some((p) => p.identity && p.identity.startsWith('liveavatar-agent-'));
+      if (agentReady) doPrime();
+    };
+
     room.on(RoomEvent.TrackSubscribed, (track) => {
       if (track.kind === 'video') {
         track.attach(videoEl);
+        videoLive = true;
+        tryPrime();
+        // Fallback: prime shortly after the stream is live even if the agent
+        // participant identity can't be matched, so priming still fires.
+        setTimeout(doPrime, 2000);
       } else if (track.kind === 'audio') {
         const audioEl = track.attach();
         document.body.appendChild(audioEl);
@@ -440,8 +466,10 @@ async function startAvatar(videoEl, toggleBtn) {
     room.on(RoomEvent.TrackUnsubscribed, (track) => {
       track.detach();
     });
+    room.on(RoomEvent.ParticipantConnected, tryPrime);
 
     await room.connect(livekit_url, livekit_client_token);
+    tryPrime();
 
     heygenEnabled = true;
     toggleBtn.disabled = false;
