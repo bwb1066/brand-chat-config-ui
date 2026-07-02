@@ -408,6 +408,32 @@ function heygenSpeak(text) {
   ).catch(console.error);
 }
 
+// Stop a LiveAvatar session so it doesn't leak toward the concurrency cap.
+// Pass keepalive=true from unload handlers so the request survives the page
+// going away (a normal fetch is cancelled on unload).
+function stopHeygenSession(sessionId, keepalive) {
+  if (!sessionId) return;
+  try {
+    fetch(`${cfg.supabaseUrl}/functions/v1/brand-heygen`, {
+      method: 'POST',
+      headers: hdrs(),
+      body: JSON.stringify({ action: 'stop_session', session_id: sessionId }),
+      keepalive: !!keepalive,
+    }).catch(() => {});
+  } catch { /* ignore */ }
+}
+
+// Register once: if the tab is closed/navigated away while a session is live,
+// tear it down so it isn't left running until LiveAvatar's idle timeout.
+let unloadCleanupRegistered = false;
+function ensureUnloadCleanup() {
+  if (unloadCleanupRegistered) return;
+  unloadCleanupRegistered = true;
+  const handler = () => { if (heygenSessionId) stopHeygenSession(heygenSessionId, true); };
+  window.addEventListener('pagehide', handler);
+  window.addEventListener('beforeunload', handler);
+}
+
 function loadLiveKit() {
   if (window.LivekitClient) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -421,11 +447,14 @@ function loadLiveKit() {
 
 async function startAvatar(videoEl, toggleBtn) {
   if (!heygenAvatarId) return;
+  let startedSessionId = null; // track so we can reclaim it if startup fails
   try {
     toggleBtn.disabled = true;
+    ensureUnloadCleanup();
     const result = await heygenPost('start_session', { avatar_id: heygenAvatarId });
     if (result.error) throw new Error(`LiveAvatar: ${result.error}`);
     const { session_id, livekit_url, livekit_client_token } = result;
+    startedSessionId = session_id || null;
     if (!session_id || !livekit_url) throw new Error('No session data in response');
 
     await loadLiveKit();
@@ -490,6 +519,10 @@ async function startAvatar(videoEl, toggleBtn) {
   } catch (e) {
     const msg = e?.message || String(e);
     console.error('[avatar] start failed:', msg);
+    // If a session was created server-side before startup failed, stop it so
+    // it doesn't leak toward the concurrency cap.
+    if (heygenRoom) { try { heygenRoom.disconnect(); } catch { /* ignore */ } }
+    stopHeygenSession(startedSessionId);
     toggleBtn.disabled = false;
     heygenEnabled = false;
     heygenSessionId = null;
@@ -507,9 +540,7 @@ async function startAvatar(videoEl, toggleBtn) {
 }
 
 async function stopAvatar(videoEl, toggleBtn) {
-  if (heygenSessionId) {
-    heygenPost('stop_session', { session_id: heygenSessionId }).catch(() => {});
-  }
+  stopHeygenSession(heygenSessionId);
   if (heygenRoom) { heygenRoom.disconnect(); heygenRoom = null; }
   heygenSessionId = null;
   heygenEnabled = false;
@@ -524,7 +555,7 @@ async function stopAvatar(videoEl, toggleBtn) {
 /* ── chat modal ───────────────────────────────────────── */
 function closeModal() {
   if (heygenSessionId) {
-    heygenPost('stop_session', { session_id: heygenSessionId }).catch(() => {});
+    stopHeygenSession(heygenSessionId);
     if (heygenRoom) { heygenRoom.disconnect(); heygenRoom = null; }
     heygenSessionId = null;
     heygenEnabled = false;
