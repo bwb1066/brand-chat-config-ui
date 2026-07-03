@@ -42,7 +42,7 @@ const GITHUB_API  = 'https://api.github.com/repos/bwb1066/brand-chat-config-ui/c
 })();
 
 /* ── connection state ───────────────────────────────────── */
-const WIDGET_BASE = 'https://bwb1066.github.io/brand-chat-config-ui/widget/';
+const WIDGET_BASE = 'https://bwb1066.github.io/brand-concierge/widget/';
 
 // Public read-only credentials — safe to hardcode (anon key, no RLS write access)
 const DEFAULT_URL = 'https://cyjquwhkmzyedkwuaffc.supabase.co';
