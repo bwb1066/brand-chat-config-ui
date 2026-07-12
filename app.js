@@ -721,6 +721,16 @@ function openEditModal(config) {
   form.vector_store_id.value = config.vector_store_id || '';
   form.heygen_avatar_id.value = config.heygen_avatar_id || '';
   form.contact_url.value = config.contact_url || '';
+  form.contact_label.value = config.contact_label || '';
+  const t = config.theme || {};
+  form.theme_font.value = t.font || '';
+  form.theme_dialogRadius.value = t.dialogRadius || '';
+  form.theme_primary.value = t.primary || '';
+  form.theme_primaryHover.value = t.primaryHover || '';
+  form.theme_onPrimary.value = t.onPrimary || '';
+  form.theme_link.value = t.link || '';
+  form.theme_userBg.value = t.userBg || '';
+  form.theme_userInk.value = t.userInk || '';
   form.open_search_context.value = config.open_search_context || '';
   form.initial_prompt.value = config.initial_prompt || '';
   form.chat_title.value = config.chat_title || '';
@@ -767,6 +777,29 @@ function closeConfigModal() {
   editingKey = null;
 }
 
+// Assemble the per-brand theme from the Widget Theme inputs. Only non-empty
+// fields are included, so blanks fall back to the widget's CSS defaults;
+// returns null when nothing is set (leaves the brand un-themed).
+function collectTheme() {
+  const form = el('config-form');
+  const map = {
+    theme_font: 'font',
+    theme_dialogRadius: 'dialogRadius',
+    theme_primary: 'primary',
+    theme_primaryHover: 'primaryHover',
+    theme_onPrimary: 'onPrimary',
+    theme_link: 'link',
+    theme_userBg: 'userBg',
+    theme_userInk: 'userInk',
+  };
+  const theme = {};
+  Object.entries(map).forEach(([field, key]) => {
+    const v = form[field] ? form[field].value.trim() : '';
+    if (v) theme[key] = v;
+  });
+  return Object.keys(theme).length ? theme : null;
+}
+
 function collectBrandExpression() {
   const dims = ['formality', 'warmth', 'playfulness', 'energy', 'sophistication', 'boldness'];
   const expr = {};
@@ -793,6 +826,8 @@ function collectFormData() {
     vector_store_id: form.vector_store_id.value.trim() || null,
     heygen_avatar_id: form.heygen_avatar_id.value.trim() || null,
     contact_url: form.contact_url.value.trim() || null,
+    contact_label: form.contact_label.value.trim() || null,
+    theme: collectTheme(),
     open_search_context: form.open_search_context.value.trim() || null,
     initial_prompt: form.initial_prompt.value.trim() || null,
     chat_title: form.chat_title.value.trim() || null,
