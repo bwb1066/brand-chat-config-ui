@@ -722,6 +722,8 @@ function openEditModal(config) {
   form.heygen_avatar_id.value = config.heygen_avatar_id || '';
   form.contact_url.value = config.contact_url || '';
   form.contact_label.value = config.contact_label || '';
+  if (form.voice_enabled) form.voice_enabled.checked = config.voice_enabled === true;
+  if (form.voice) form.voice.value = config.voice || '';
   const t = config.theme || {};
   form.theme_font.value = t.font || '';
   form.theme_dialogRadius.value = t.dialogRadius || '';
@@ -838,6 +840,8 @@ function collectFormData() {
     product_advisory_keywords: form.product_advisory_keywords.value.trim() || null,
     brand_expression: collectBrandExpression(),
     response_length: rlChecked ? rlChecked.value : 'moderate',
+    voice_enabled: form.voice_enabled ? form.voice_enabled.checked : false,
+    voice: form.voice ? (form.voice.value.trim() || null) : null,
   };
 }
 

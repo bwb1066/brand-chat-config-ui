@@ -113,6 +113,33 @@
           <span>Disable citations</span>
         </label>
 
+        <!-- Voice (speech-to-speech; off by default) -->
+        <div class="form-section">
+          <h4 class="form-section-title">Voice</h4>
+          <p class="form-section-desc">Let users talk to the concierge and hear spoken replies</p>
+          <label class="field field-check">
+            <input type="checkbox" name="voice_enabled">
+            <span>Enable voice mode (mic input + spoken replies)</span>
+          </label>
+          <label class="field">
+            <span>Voice</span>
+            <select name="voice">
+              <option value="">Default (alloy)</option>
+              <option value="alloy">Alloy</option>
+              <option value="ash">Ash</option>
+              <option value="ballad">Ballad</option>
+              <option value="coral">Coral</option>
+              <option value="echo">Echo</option>
+              <option value="fable">Fable</option>
+              <option value="onyx">Onyx</option>
+              <option value="nova">Nova</option>
+              <option value="sage">Sage</option>
+              <option value="shimmer">Shimmer</option>
+              <option value="verse">Verse</option>
+            </select>
+          </label>
+        </div>
+
         <!-- Widget theme (per-brand styling; blank fields fall back to defaults) -->
         <div class="form-section">
           <h4 class="form-section-title">Widget Theme</h4>
@@ -467,6 +494,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=2"></script>
+  <script type="module" src="app.js?v=3"></script>
 </body>
 </html>
