@@ -724,6 +724,12 @@ function openEditModal(config) {
   form.contact_label.value = config.contact_label || '';
   if (form.voice_enabled) form.voice_enabled.checked = config.voice_enabled === true;
   if (form.voice) form.voice.value = config.voice || '';
+  if (form.commerce_enabled) form.commerce_enabled.checked = config.commerce_enabled === true;
+  if (form.commerce_currency) form.commerce_currency.value = config.currency || '';
+  if (form.commerce_facet_hints) {
+    form.commerce_facet_hints.value = Array.isArray(config.facet_hints) ? config.facet_hints.join(', ') : '';
+  }
+  if (form.commerce_tool_desc) form.commerce_tool_desc.value = config.tool_desc || '';
   const t = config.theme || {};
   form.theme_font.value = t.font || '';
   form.theme_dialogRadius.value = t.dialogRadius || '';
@@ -842,6 +848,12 @@ function collectFormData() {
     response_length: rlChecked ? rlChecked.value : 'moderate',
     voice_enabled: form.voice_enabled ? form.voice_enabled.checked : false,
     voice: form.voice ? (form.voice.value.trim() || null) : null,
+    commerce_enabled: form.commerce_enabled ? form.commerce_enabled.checked : false,
+    currency: form.commerce_currency ? (form.commerce_currency.value.trim() || 'USD') : 'USD',
+    facet_hints: form.commerce_facet_hints
+      ? form.commerce_facet_hints.value.split(',').map((s) => s.trim()).filter(Boolean)
+      : [],
+    tool_desc: form.commerce_tool_desc ? (form.commerce_tool_desc.value.trim() || null) : null,
   };
 }
 

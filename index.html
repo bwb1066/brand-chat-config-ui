@@ -140,6 +140,28 @@
           </label>
         </div>
 
+        <!-- Commerce (agentic buy/quote surface; off by default) -->
+        <div class="form-section">
+          <h4 class="form-section-title">Commerce</h4>
+          <p class="form-section-desc">Let the concierge add catalog products to a shared quote/cart (needs a commerce catalog + the commerce blocks on the site)</p>
+          <label class="field field-check">
+            <input type="checkbox" name="commerce_enabled">
+            <span>Enable commerce (concierge add-to-quote)</span>
+          </label>
+          <label class="field">
+            <span>Currency</span>
+            <input type="text" name="commerce_currency" placeholder="USD">
+          </label>
+          <label class="field">
+            <span>Facet hints (comma-separated)</span>
+            <input type="text" name="commerce_facet_hints" placeholder="diameter, focal length, coating, wavelength">
+          </label>
+          <label class="field">
+            <span>Agent tool description (optional)</span>
+            <textarea name="commerce_tool_desc" rows="2" placeholder="Overrides the default MCP/agent tool description for this brand's catalog"></textarea>
+          </label>
+        </div>
+
         <!-- Widget theme (per-brand styling; blank fields fall back to defaults) -->
         <div class="form-section">
           <h4 class="form-section-title">Widget Theme</h4>
@@ -494,6 +516,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=3"></script>
+  <script type="module" src="app.js?v=4"></script>
 </body>
 </html>
