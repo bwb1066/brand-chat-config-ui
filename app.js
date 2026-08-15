@@ -739,6 +739,10 @@ function openEditModal(config) {
   form.theme_link.value = t.link || '';
   form.theme_userBg.value = t.userBg || '';
   form.theme_userInk.value = t.userInk || '';
+  form.theme_cta.value = t.cta || '';
+  form.theme_ctaInk.value = t.ctaInk || '';
+  form.theme_ctaAdded.value = t.ctaAdded || '';
+  form.theme_ctaAddedInk.value = t.ctaAddedInk || '';
   form.open_search_context.value = config.open_search_context || '';
   form.initial_prompt.value = config.initial_prompt || '';
   form.chat_title.value = config.chat_title || '';
@@ -799,6 +803,10 @@ function collectTheme() {
     theme_link: 'link',
     theme_userBg: 'userBg',
     theme_userInk: 'userInk',
+    theme_cta: 'cta',
+    theme_ctaInk: 'ctaInk',
+    theme_ctaAdded: 'ctaAdded',
+    theme_ctaAddedInk: 'ctaAddedInk',
   };
   const theme = {};
   Object.entries(map).forEach(([field, key]) => {
